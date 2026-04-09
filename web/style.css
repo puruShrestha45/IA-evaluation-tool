@@ -36,6 +36,52 @@
   --nav-h: 48px;
 }
 
+/* Login Overlay Styling */
+.login-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: #f8f9fa; /* Light background */
+  z-index: 10000;      /* Make sure it's on top of everything */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-box {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+}
+
+.login-box h2 { margin-top: 0; color: #333; }
+
+.login-box input {
+  width: 100%;
+  padding: 12px;
+  margin: 20px 0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-sizing: border-box; /* Ensures padding doesn't break width */
+}
+
+.login-box button {
+  width: 100%;
+  padding: 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.login-box button:hover { background: #0056b3; }
+
 /* ── reset / base ────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; }

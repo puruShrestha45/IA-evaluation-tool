@@ -11,6 +11,21 @@ import { renderResumeTab }          from './tab-resume.js';
 import { renderQuestionsTab }       from './tab-questions.js';
 import { renderDuringInterviewTab } from './tab-during.js';
 
+// --- LOGIN LOGIC ELEMENTS ---
+const loginScreen = document.getElementById('login-screen');
+const loginBtn = document.getElementById('login-btn');
+const loginEmailInput = document.getElementById('login-email');
+const userDisplayEmail = document.getElementById('user-display-email');
+const logoutBtn = document.getElementById('logout-btn');
+
+// --- Helpers ---
+function updateIdentityUI(email) {
+  if (email) {
+    userDisplayEmail.textContent = `| 👤 ${email}`;
+    if (logoutBtn) logoutBtn.style.display = 'inline-block';
+  }
+}
+
 // ── Render ────────────────────────────────────────────────────────────────
 
 function renderContent() {
@@ -96,6 +111,16 @@ function setupEvents() {
     });
   });
 
+  // Logout Button
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      if (confirm("Logout? Ensure your work is saved.")) {
+        localStorage.removeItem('eval_user_email');
+        window.location.reload();
+      }
+    });
+  }
+
   // Score buttons, binary buttons, guide toggles — event delegation on #content
   const contentEl = document.getElementById('content');
 
@@ -164,16 +189,56 @@ function setupEvents() {
 // ── Init ──────────────────────────────────────────────────────────────────
 
 async function init() {
-  state.rubrics = await api.getRubrics();
-  state.datasets = await api.getDatasets();
+  // 1. Check if user is already logged in
+  const savedEmail = localStorage.getItem('eval_user_email');
 
-  const sel = document.getElementById('dataset-select');
-  sel.innerHTML = state.datasets.map(d =>
-    `<option value="${d.index}">${esc(d.candidate_name)} — ${esc(d.job_name)}</option>`
-  ).join('');
+  if (savedEmail) {
+    // If logged in, hide screen and start app
+    loginScreen.style.display = 'none';
+    updateIdentityUI(savedEmail);
+    await startApp(); 
+  } else {
+    // If not logged in, wait for the button click
+    loginBtn.addEventListener('click', async () => {
+      const email = loginEmailInput.value.trim().toLowerCase();
+      if (email && email.includes('@')) {
+        localStorage.setItem('eval_user_email', email);
+        loginScreen.style.display = 'none';
+        updateIdentityUI(email);
+        await startApp(); // Now start the data loading
+      } else {
+        alert("Please enter a valid work email.");
+      }
+    });
 
-  setupEvents();
-  await loadDataset(0);
+    //Enter key
+    loginEmailInput.addEventListener('keypress', async (e) => {
+      if (e.key === 'Enter') loginBtn.click();
+    })
+  }
+}
+
+async function startApp() {
+  try{
+    state.rubrics = await api.getRubrics();
+    state.datasets = await api.getDatasets();
+
+    const sel = document.getElementById('dataset-select');
+    sel.innerHTML = state.datasets.map(d =>
+      `<option value="${d.index}">${esc(d.candidate_name)} — ${esc(d.job_name)}</option>`
+    ).join('');
+
+    setupEvents();
+    await loadDataset(0);
+  } catch (err) {
+    console.error("Failed to initialize app:", err);
+    document.getElementById('content').innerHTML = `
+        <div class="error-msg">
+          <h3>Connection Error</h3>
+          <p>Could not reach the server. Please check your connection and refresh.</p>
+        </div>
+      `;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
