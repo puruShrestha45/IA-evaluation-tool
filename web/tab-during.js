@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { state } from './state.js';
-import { esc, getScore } from './utils.js';
+import { esc, getScore, rubricPanel } from './utils.js';
 
 export const CLASSIF_LABELS = [
   'New Question',
@@ -16,7 +16,7 @@ export const EVAL_RUBRICS = ['Excellent', 'Good', 'Adequate', 'Inadequate', 'Poo
 
 // ── Data helpers ──────────────────────────────────────────────────────────
 
-function isNewQOrEnd(e) {
+export function isNewQOrEnd(e) {
   if (e.role !== 'system' || e.task !== 'classification') return false;
   const c = e.output?.classification;
   return c === 'New Question' || c === 'Interview End';
@@ -29,7 +29,7 @@ function isEvalOrFollowup(e) {
 // Eval+followup for a previous question appear in the raw data AFTER the next
 // new-question classification. Reorder so they display BEFORE that classification
 // (they close out the prior question). Single forward pass with lookahead.
-function buildDisplayOrder(pit) {
+export function buildDisplayOrder(pit) {
   const result = [];
   let i = 0;
   while (i < pit.length) {
@@ -56,7 +56,7 @@ function buildDisplayOrder(pit) {
 
 export function renderDuringInterviewTab() {
   const d   = state.data;
-  const pit = d.prcoessed_interview_transcript;
+  const pit = d.processed_interview_transcript;
   const intervieweeName = d.interviewee_name || 'Candidate';
   const interviewerName = d.interviewer_name || 'Interviewer';
 
@@ -66,6 +66,73 @@ export function renderDuringInterviewTab() {
 
   let html = '';
   const ordered = buildDisplayOrder(pit);
+
+  // ── Pre-scan helpers ──────────────────────────────────────────────────────
+  // Returns true if all annotation fields before the classification at endCi
+  // are fully filled in (evals + classification cards, in display order).
+  function isAllCompleteBeforeClassif(endCi) {
+    let ci = 0;
+    let ei = 0;
+    for (let i = 0; i < ordered.length; i++) {
+      const e = ordered[i];
+      if (e.role !== 'system') continue;
+
+      if (e.task === 'classification') {
+        if (ci === endCi) return true;
+        const ab6 = `flow_classification.c${ci}`;
+        const correct = getScore(`${ab6}.classification`);
+        if (!correct) return false;
+        const effectiveGt = correct === 'FAIL'
+          ? getScore(`${ab6}.ground_truth`)
+          : (e.output?.classification || '');
+        if (correct === 'FAIL' && !effectiveGt) return false;
+        if (effectiveGt === 'New Question') {
+          if (!getScore(`${ab6}.transcript_split`) || !getScore(`${ab6}.question_id`)) return false;
+        } else if (effectiveGt?.startsWith('Out of Plan')) {
+          if (!getScore(`${ab6}.oop_detection`)) return false;
+        }
+        ci++;
+        continue;
+      }
+
+      if (e.task === 'evaluation') {
+        // Stage 7 — all four dimensions must be scored
+        if (!getScore(`answer_eval.e${ei}.score_accuracy`)        || !getScore(`answer_eval.e${ei}.evidence_grounding`) ||
+            !getScore(`answer_eval.e${ei}.classification_accuracy`) || !getScore(`answer_eval.e${ei}.gap_strength`)) return false;
+        // Stage 8.1 — necessity judgment (binary)
+        if (!getScore(`followup_decision.e${ei}.necessity`)) return false;
+        // Stage 8.2–8.4 — required when a follow-up was generated
+        const next = ordered[i + 1];
+        if (next && next.task === 'follow-up') {
+          if (!getScore(`followup_decision.e${ei}.answer_grounding`) || !getScore(`followup_decision.e${ei}.chain_coherence`) ||
+              !getScore(`followup_decision.e${ei}.framing`)) return false;
+          i++;
+        }
+        ei++;
+        continue;
+      }
+      // follow-up entries already consumed above; transcriptions skipped
+    }
+    return true;
+  }
+
+  // Pre-scan: find ci of "Interview End" marked CORRECT with all prior work done
+  let interviewEndCorrectCi = -1;
+  let totalClassifCount = 0;
+  {
+    let tempCi = 0;
+    for (const e of ordered) {
+      if (e.role === 'system' && e.task === 'classification') {
+        if (e.output?.classification === 'Interview End' &&
+            getScore(`flow_classification.c${tempCi}.classification`) === 'CORRECT' &&
+            isAllCompleteBeforeClassif(tempCi)) {
+          interviewEndCorrectCi = tempCi;
+        }
+        tempCi++;
+      }
+    }
+    totalClassifCount = tempCi;
+  }
 
   html += '<div class="di-stream">';
 
@@ -96,20 +163,19 @@ export function renderDuringInterviewTab() {
       const fuEntry = (next && next.task === 'follow-up') ? next : null;
       if (fuEntry) i++;
 
-      const evOut  = entry.output || {};
-      const rat    = evOut.rating || {};
-      const qd     = (entry.input || {}).question_details || {};
-      const annBase = `during_interview.eval.${qi}`;
+      const evOut   = entry.output || {};
+      const rat     = evOut.rating || {};
+      const qd      = (entry.input || {}).question_details || {};
+      const ab7     = `answer_eval.e${qi}`;
+      const ab8     = `followup_decision.e${qi}`;
 
       const rubricScore = rat.score ?? 0;
       const rubricCls = rubricScore >= 9 ? 'gt-e' : rubricScore >= 7 ? 'gt-g'
                       : rubricScore >= 5 ? 'gt-a' : rubricScore >= 3 ? 'gt-i' : 'gt-p';
-      const evalCorrect   = getScore(`${annBase}.eval_correct`);
-      const fuAppropriate = getScore(`${annBase}.followup_appropriate`);
-      const fuQuality     = getScore(`${annBase}.followup_quality`);
       const fuOut = fuEntry?.output || {};
       const shortQ = qd.question
         ? (qd.question.length > 80 ? qd.question.slice(0, 80) + '…' : qd.question) : '';
+      const necessity = getScore(`${ab8}.necessity`);
 
       html += `
         <div class="di-eval-card">
@@ -122,7 +188,7 @@ export function renderDuringInterviewTab() {
           </div>
 
           ${qd.expected_answer_context ? `
-            <details class="expected-answer" style="margin-bottom:.6rem">
+            <details open class="expected-answer" style="margin-bottom:.6rem">
               <summary>Expected answer context</summary>
               <p>${esc(qd.expected_answer_context)}</p>
             </details>` : ''}
@@ -130,32 +196,15 @@ export function renderDuringInterviewTab() {
           <div class="ai-eval-box">
             ${evOut.what_was_answered ? `<div class="eval-answered"><strong>✓ Answered:</strong> ${esc(evOut.what_was_answered)}</div>` : ''}
             ${evOut.what_was_missed   ? `<div class="eval-missed"><strong>✗ Missed:</strong> ${esc(evOut.what_was_missed)}</div>` : ''}
-            ${rat.reasoning ? `<details class="ai-reasoning"><summary>Reasoning</summary><p>${esc(rat.reasoning)}</p></details>` : ''}
+            ${rat.reasoning ? `<details open class="ai-reasoning"><summary>Reasoning</summary><p>${esc(rat.reasoning)}</p></details>` : ''}
           </div>
 
-          <details class="eval-criteria-panel" style="margin-top:.8rem; background:var(--surface-alt); padding:.5rem; border-radius:var(--radius-sm); border:1px solid var(--border);">
-            <summary style="font-size:.78rem; font-weight:600; color:var(--text-mid); cursor:pointer;">Evaluation Criteria & Decision Rules</summary>
-            <div style="font-size:.75rem; color:var(--text-mid); margin-top:.4rem; line-height:1.5;">
-              <div style="display:flex;gap:.5rem;margin-bottom:.2rem;"><span style="width:100px;font-weight:600;color:#15803d">Excellent 9–10</span><span>Comprehensive, specific detail. Exceeds expectations.</span></div>
-              <div style="display:flex;gap:.5rem;margin-bottom:.2rem;"><span style="width:100px;font-weight:600;color:#2563eb">Good 7–8</span><span>Clear and relevant. Minor gaps.</span></div>
-              <div style="display:flex;gap:.5rem;margin-bottom:.2rem;"><span style="width:100px;font-weight:600;color:#ca8a04">Adequate 5–6</span><span>Relevant but incomplete — partial answer.</span></div>
-              <div style="display:flex;gap:.5rem;margin-bottom:.2rem;"><span style="width:100px;font-weight:600;color:#ea580c">Inadequate 3–4</span><span>Superficial. Misses most key elements.</span></div>
-              <div style="display:flex;gap:.5rem;margin-bottom:.2rem;"><span style="width:100px;font-weight:600;color:#dc2626">Poor 1–2</span><span>Incorrect, irrelevant, or almost nothing answered.</span></div>
-            </div>
-          </details>
-
           <div class="di-eval-ann">
-            <label class="di-annotate-label">Was the evaluation correct?</label>
-            <div class="binary-buttons" data-ann-key="${annBase}.eval_correct" style="margin-top:.35rem">
-              <button class="binary-btn ${evalCorrect === 'CORRECT' ? 'selected correct' : ''}" data-value="CORRECT">✓ Correct</button>
-              <button class="binary-btn ${evalCorrect === 'FAIL'    ? 'selected fail'    : ''}" data-value="FAIL">✗ Wrong</button>
-            </div>
-            ${evalCorrect === 'FAIL' ? `
-              <label class="di-annotate-label" style="margin-top:.5rem">Correct rubric:</label>
-              <select class="di-select" data-ann-key="${annBase}.eval_gt" style="margin-top:.3rem">
-                <option value="">— select —</option>
-                ${EVAL_RUBRICS.map(r => `<option value="${r}" ${getScore(`${annBase}.eval_gt`) === r ? 'selected' : ''}>${r}</option>`).join('')}
-              </select>` : ''}
+            <div class="stage-section-label">Stage 7 — Answer Evaluation</div>
+            ${rubricPanel('ANSWER_SCORE_ACCURACY',          `${ab7}.score_accuracy`)}
+            ${rubricPanel('ANSWER_EVIDENCE_GROUNDING',      `${ab7}.evidence_grounding`)}
+            ${rubricPanel('ANSWER_CLASSIFICATION_ACCURACY', `${ab7}.classification_accuracy`)}
+            ${rubricPanel('ANSWER_GAP_STRENGTH',            `${ab7}.gap_strength`)}
           </div>
 
           <div class="di-followup-section">
@@ -164,24 +213,35 @@ export function renderDuringInterviewTab() {
                    <div class="followup-header">Follow-up generated</div>
                    <div class="followup-text">${esc(fuOut.follow_up_question || '')}</div>
                    ${fuOut.expected_answer_context ? `
-                     <details class="expected-answer" style="padding:.3rem .7rem .5rem">
+                     <details open class="expected-answer" style="padding:.3rem .7rem .5rem">
                        <summary>Expected context for follow-up</summary>
                        <p>${esc(fuOut.expected_answer_context)}</p>
                      </details>` : ''}
                  </div>`
               : `<div class="no-followup">No follow-up generated</div>`}
+
             <div class="di-followup-ann">
-              <label class="di-annotate-label">Was a follow-up appropriate? (Check 5.6 Follow-up Necessity)</label>
-              <div class="binary-buttons" data-ann-key="${annBase}.followup_appropriate" style="margin-top:.35rem">
-                <button class="binary-btn ${fuAppropriate === 'YES' ? 'selected correct' : ''}" data-value="YES">Yes</button>
-                <button class="binary-btn ${fuAppropriate === 'NO'  ? 'selected fail'    : ''}" data-value="NO">No</button>
+              <div class="stage-section-label">Stage 8 — Follow-Up Decision</div>
+              <div class="rubric-panel veto">
+                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem">
+                  <span class="veto-badge">⚠ VETO</span>
+                  <span style="font-size:.82rem;font-weight:600">8.1 Necessity Judgment</span>
+                </div>
+                <p style="font-size:.75rem;color:var(--text-mid);margin:0 0 .5rem">
+                  ${fuEntry ? 'Follow-up was generated.' : 'No follow-up was generated.'}
+                  Rate the decision: generate when score &lt;7, suppress when score ≥7.
+                </p>
+                <div class="binary-buttons" data-ann-key="${ab8}.necessity">
+                  <button class="binary-btn ${necessity === 'CORRECT' ? 'selected correct' : ''}" data-value="CORRECT">✓ Correct</button>
+                  <button class="binary-btn ${necessity === 'FAIL'    ? 'selected fail'    : ''}" data-value="FAIL">✗ Wrong</button>
+                </div>
               </div>
+
               ${fuEntry ? `
-                <label class="di-annotate-label" style="margin-top:.75rem">Quality of generated question:</label>
-                <div class="binary-buttons" data-ann-key="${annBase}.followup_quality" style="margin-top:.35rem">
-                  <button class="binary-btn ${fuQuality === 'GOOD' ? 'selected correct' : ''}" data-value="GOOD">Good</button>
-                  <button class="binary-btn ${fuQuality === 'POOR' ? 'selected fail'    : ''}" data-value="POOR">Poor</button>
-                </div>` : ''}
+                ${rubricPanel('FOLLOWUP_ANSWER_GROUNDING', `${ab8}.answer_grounding`)}
+                ${rubricPanel('FOLLOWUP_CHAIN_COHERENCE',  `${ab8}.chain_coherence`)}
+                ${rubricPanel('FOLLOWUP_FRAMING',          `${ab8}.framing`)}
+              ` : ''}
             </div>
           </div>
         </div>`;
@@ -193,10 +253,10 @@ export function renderDuringInterviewTab() {
     // ── Classification ────────────────────────────────────────────────────
     if (entry.task === 'classification') {
       const classif = entry.output?.classification || '';
-      const ci = classifCounter++;
-      const annBase = `during_interview.classif.${ci}`;
+      const ci  = classifCounter++;
+      const ab6 = `flow_classification.c${ci}`;
 
-      const classifCorrect = getScore(`${annBase}.correct`);
+      const classifCorrect = getScore(`${ab6}.classification`);
       const mqi    = entry.output?.matched_question_index ?? -1;
       const mqText = entry.output?.matched_question || '';
       const isEnd  = classif === 'Interview End';
@@ -205,11 +265,12 @@ export function renderDuringInterviewTab() {
       const isCont = classif === 'Continuation';
 
       const badgeColorClass = isCont ? 'bc-cont' : isEnd ? 'bc-end' : isOop ? 'bc-oop' : 'bc-newq';
+      const badgeIcon = isCont ? '🔄' : isEnd ? '🏁' : isOop ? '⚠️' : '✨';
 
       const hist = entry.input?.conversation_history || [];
       let convHtml = '';
       if (hist.length > 0) {
-        convHtml += `<details class="conv-hist-details"><summary>View prior context (${hist.length} messages)</summary><div class="conv-hist-body">`;
+        convHtml += `<details class="conv-hist-details"><summary>💬 View prior context (${hist.length} messages)</summary><div class="conv-hist-body">`;
         for (let j = 0; j < hist.length; j++) {
           const role = Object.keys(hist[j])[0];
           const text = Object.values(hist[j])[0];
@@ -227,7 +288,7 @@ export function renderDuringInterviewTab() {
       const fuCount = fuQs.length;
 
       let availQsHtml = `<details class="avail-qs">
-        <summary>Available Questions (${mainCount} main, ${fuCount} follow-up)</summary>
+        <summary>📑 Available Questions (${mainCount} main, ${fuCount} follow-up)</summary>
         <div class="avail-qs-body">`;
       if (mainCount > 0) {
         availQsHtml += `<div class="avail-qs-label">MAIN QUESTIONS</div><ul>${mainQs.map(q => `<li>${esc(q)}</li>`).join('')}</ul>`;
@@ -245,16 +306,16 @@ export function renderDuringInterviewTab() {
       progressHtml += `</ul></div>`;
 
       const reasoningHtml = entry.output?.reasoning ? `
-        <details class="classif-reasoning">
-          <summary>Reasoning (click to expand)</summary>
+        <details open class="classif-reasoning">
+          <summary>Reasoning</summary>
           <p>${esc(entry.output.reasoning)}</p>
         </details>` : '';
 
-      const evalQid = getScore(`${annBase}.qid`);
-      const evalOop = getScore(`${annBase}.oop`);
-      const evalSplit = getScore(`${annBase}.split`);
+      const evalQid   = getScore(`${ab6}.question_id`);
+      const evalOop   = getScore(`${ab6}.oop_detection`);
+      const evalSplit = getScore(`${ab6}.transcript_split`);
 
-      const effectiveGt = classifCorrect === 'FAIL' ? getScore(`${annBase}.gt`) : classif;
+      const effectiveGt = classifCorrect === 'FAIL' ? getScore(`${ab6}.ground_truth`) : classif;
       const showNewQMetrics = effectiveGt === 'New Question';
       const showOopMetrics = effectiveGt?.startsWith('Out of Plan');
 
@@ -273,7 +334,7 @@ export function renderDuringInterviewTab() {
                 </div>
               </details>
               <label class="di-annotate-label">Transcript Split Handling (6.4)</label>
-              <div class="binary-buttons" data-ann-key="${annBase}.split">
+              <div class="binary-buttons" data-ann-key="${ab6}.transcript_split">
                 <button class="binary-btn ${evalSplit === 'CORRECT' ? 'selected correct' : ''}" data-value="CORRECT">Correct</button>
                 <button class="binary-btn ${evalSplit === 'FAIL' ? 'selected fail' : ''}" data-value="FAIL">Fail</button>
               </div>
@@ -286,7 +347,7 @@ export function renderDuringInterviewTab() {
                 </div>
               </details>
               <label class="di-annotate-label">Question Identification (6.2)</label>
-              <div class="binary-buttons" data-ann-key="${annBase}.qid">
+              <div class="binary-buttons" data-ann-key="${ab6}.question_id">
                 <button class="binary-btn ${evalQid === 'CORRECT' ? 'selected correct' : ''}" data-value="CORRECT">Correct</button>
                 <button class="binary-btn ${evalQid === 'FAIL' ? 'selected fail' : ''}" data-value="FAIL">Fail</button>
               </div>
@@ -303,7 +364,7 @@ export function renderDuringInterviewTab() {
                 </div>
               </details>
               <label class="di-annotate-label">Out of Plan Detection (6.3)</label>
-              <div class="binary-buttons" data-ann-key="${annBase}.oop">
+              <div class="binary-buttons" data-ann-key="${ab6}.oop_detection">
                 <button class="binary-btn ${evalOop === 'CORRECT' ? 'selected correct' : ''}" data-value="CORRECT">Correct</button>
                 <button class="binary-btn ${evalOop === 'PARTIAL' ? 'selected partial' : ''}" data-value="PARTIAL">Partial</button>
                 <button class="binary-btn ${evalOop === 'FAIL' ? 'selected fail' : ''}" data-value="FAIL">Fail</button>
@@ -319,18 +380,18 @@ export function renderDuringInterviewTab() {
           <div class="di-classif-header">
             <div class="di-classif-header-left">
               <span class="di-classif-num">#${ci + 1}</span>
-              <span class="di-classif-badge2 ${badgeColorClass}">${esc(classif)}</span>
-              <div class="di-classif-inline-ann" data-ann-key="${annBase}.correct" data-classif="${esc(classif)}">
+              <span class="di-classif-badge2 ${badgeColorClass}">${badgeIcon} ${esc(classif)}</span>
+              <div class="di-classif-inline-ann" data-ann-key="${ab6}.classification" data-classif="${esc(classif)}">
                 <button class="inline-btn ${classifCorrect === 'CORRECT' ? 'selected correct' : ''}" data-value="CORRECT" title="6.1 Classification Accuracy">✓ Correct</button>
-                <button class="inline-btn ${classifCorrect === 'FAIL' ? 'selected fail' : ''}" data-value="FAIL" title="6.1 Classification Accuracy">✗</button>
+                <button class="inline-btn ${classifCorrect === 'FAIL' ? 'selected fail' : ''}" data-value="FAIL" title="6.1 Classification Accuracy">✗ Wrong</button>
               </div>
             </div>
             <div class="di-classif-header-right">
               ${classifCorrect === 'FAIL' ? `
                 <span style="font-size:.7rem; color:var(--text-muted); margin-right:.4rem">Ground Truth:</span>
-                <select class="di-select inline-select" data-ann-key="${annBase}.gt">
+                <select class="di-select inline-select" data-ann-key="${ab6}.ground_truth">
                   <option value="">— select —</option>
-                  ${CLASSIF_LABELS.map(l => `<option value="${l}" ${getScore(`${annBase}.gt`) === l ? 'selected' : ''}>${l}</option>`).join('')}
+                  ${CLASSIF_LABELS.map(l => `<option value="${l}" ${getScore(`${ab6}.ground_truth`) === l ? 'selected' : ''}>${l}</option>`).join('')}
                 </select>` : ''}
             </div>
           </div>
@@ -342,9 +403,9 @@ export function renderDuringInterviewTab() {
               ${availQsHtml}
               ${reasoningHtml}
               <div class="ai-output-box">
-                <div class="ai-output-header">Parsed Output Info</div>
+                <div class="ai-output-header">🤖 Agent Intelligence</div>
                 <div class="classif-extra-line"><span class="classif-extra-label">MATCHED Q</span> <span class="ai-output-value">${mqText ? esc(mqText) : '<span class="muted">—</span>'}</span></div>
-                <div class="classif-extra-line"><span class="classif-extra-label">FOLLOW-UP</span> <span class="ai-output-value">${entry.output?.is_follow_up ? '<span style="color:var(--primary);font-weight:600">Yes</span>' : 'No'}</span></div>
+                <div class="classif-extra-line"><span class="classif-extra-label">FOLLOW-UP</span> <span class="ai-output-value">${entry.output?.is_follow_up ? '<span style="color:var(--primary);font-weight:700">Yes</span>' : 'No'}</span></div>
               </div>
               ${metricHtml}
             </div>
@@ -354,6 +415,23 @@ export function renderDuringInterviewTab() {
             </div>
           </div>
         </div>`;
+
+      // If this was the correctly-identified Interview End, offer to bulk-mark what follows
+      if (ci === interviewEndCorrectCi && ci + 1 < totalClassifCount) {
+        const remaining = totalClassifCount - ci - 1;
+        html += `
+        <div class="mark-remaining-container">
+          <p class="mark-remaining-note">
+            Interview end correctly identified and all prior evaluations are complete.
+            The ${remaining} remaining classification${remaining > 1 ? 's' : ''} after this point
+            ${remaining > 1 ? 'are' : 'is'} post-end continuation${remaining > 1 ? 's' : ''} — mark them all as Correct at once.
+          </p>
+          <button class="mark-remaining-btn" data-start-ci="${ci + 1}" data-total-ci="${totalClassifCount}">
+            Mark remaining ${remaining} as Correct
+          </button>
+        </div>`;
+      }
+
       continue;
     }
   }

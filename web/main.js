@@ -9,7 +9,9 @@ import { toggleGuide }              from './guide.js';
 import { renderJDTab }              from './tab-jd.js';
 import { renderResumeTab }          from './tab-resume.js';
 import { renderQuestionsTab }       from './tab-questions.js';
-import { renderDuringInterviewTab } from './tab-during.js';
+import { renderDuringInterviewTab, buildDisplayOrder } from './tab-during.js';
+import { renderAnalysisTab }                          from './tab-analysis.js';
+import { renderTimekeeperTab, renderAnswerRelevancyTab, renderAskIATab } from './tab-placeholders.js';
 
 // --- LOGIN LOGIC ELEMENTS ---
 const loginScreen = document.getElementById('login-screen');
@@ -32,11 +34,23 @@ function renderContent() {
   const el = document.getElementById('content');
   const scrollY = window.scrollY;
 
-  switch (state.tab) {
-    case 'jd':        el.innerHTML = renderJDTab();              break;
-    case 'resume':    el.innerHTML = renderResumeTab();          break;
-    case 'questions': el.innerHTML = renderQuestionsTab();       break;
-    case 'during':    el.innerHTML = renderDuringInterviewTab(); break;
+  try {
+    switch (state.tab) {
+      case 'jd':               el.innerHTML = renderJDTab();               break;
+      case 'resume':           el.innerHTML = renderResumeTab();           break;
+      case 'questions':        el.innerHTML = renderQuestionsTab();        break;
+      case 'during':           el.innerHTML = renderDuringInterviewTab();  break;
+      case 'analysis':         el.innerHTML = renderAnalysisTab();         break;
+      case 'timekeeper':       el.innerHTML = renderTimekeeperTab();       break;
+      case 'answer-relevancy': el.innerHTML = renderAnswerRelevancyTab();  break;
+      case 'ask-ia':           el.innerHTML = renderAskIATab();            break;
+    }
+  } catch (err) {
+    console.error('Render error in tab', state.tab, err);
+    el.innerHTML = `<div class="error-msg" style="padding:1.5rem;color:#b91c1c;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;margin:1rem;">
+      <strong>Render error (${state.tab} tab):</strong> ${esc(err.message)}
+      <pre style="font-size:.75rem;margin-top:.5rem;overflow:auto;">${esc(err.stack || '')}</pre>
+    </div>`;
   }
 
   window.scrollTo(0, scrollY);
@@ -129,6 +143,29 @@ function setupEvents() {
     const guideBtn = e.target.closest('.guide-toggle-btn');
     if (guideBtn) { toggleGuide(guideBtn.dataset.guideToggle); return; }
 
+    // Bulk "Mark remaining as Correct" after confirmed Interview End
+    const markRemainingBtn = e.target.closest('.mark-remaining-btn');
+    if (markRemainingBtn) {
+      const startCi = parseInt(markRemainingBtn.dataset.startCi);
+      const pit = state.data.processed_interview_transcript;
+      const ordered = buildDisplayOrder(pit);
+      let ci = 0;
+      for (const entry of ordered) {
+        if (entry.role === 'system' && entry.task === 'classification') {
+          if (ci >= startCi) {
+            const ab6    = `flow_classification.c${ci}`;
+            const classif = entry.output?.classification || '';
+            setScore(`${ab6}.classification`, 'CORRECT');
+            setScore(`${ab6}.ground_truth`, classif);
+          }
+          ci++;
+        }
+      }
+      scheduleSave();
+      renderContent();
+      return;
+    }
+
     // Score buttons (1-5)
     const scoreBtn = e.target.closest('.score-btn');
     if (scoreBtn) {
@@ -153,7 +190,7 @@ function setupEvents() {
       setScore(annKey, value);
 
       if (value === 'CORRECT' && container.dataset.classif) {
-        setScore(annKey.replace('.correct', '.gt'), container.dataset.classif);
+        setScore(annKey.replace('.classification', '.ground_truth'), container.dataset.classif);
       }
 
       container.querySelectorAll('.binary-btn, .inline-btn').forEach(b => {
@@ -164,10 +201,9 @@ function setupEvents() {
         }
       });
       scheduleSave();
-      // Conditionally-shown selects need a re-render when verdict changes
+      // Re-render when classification verdict changes (controls ground-truth select + flow metrics)
       if (['CORRECT', 'FAIL'].includes(value) &&
-          (annKey.endsWith('.eval_correct') ||
-           (annKey.startsWith('during_interview.classif.') && annKey.endsWith('.correct')))) {
+          annKey.startsWith('flow_classification.c') && annKey.endsWith('.classification')) {
         renderContent();
       }
     }
@@ -179,7 +215,7 @@ function setupEvents() {
     if (sel) {
       setScore(sel.dataset.annKey, sel.value);
       scheduleSave();
-      if (sel.dataset.annKey.endsWith('.gt')) {
+      if (sel.dataset.annKey.endsWith('.ground_truth')) {
         renderContent();
       }
     }

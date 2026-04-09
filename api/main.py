@@ -3,20 +3,31 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 import json
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from api.rubrics_content import RUBRICS
 
 BASE_DIR = Path(__file__).parent.parent  # evaluation/
-print("BASE_DIR: ", BASE_DIR)
-DATA_DIR = BASE_DIR / "data"  # test/dataset/data/
-DATA_FILE = DATA_DIR / "result_v2.json"
+load_dotenv(BASE_DIR / ".env")
+
+DATA_FILE = BASE_DIR / os.getenv("DATA_FILE", "data/result_v2.json")
 ANNOTATIONS_DIR = BASE_DIR / "annotations"
 ANNOTATIONS_DIR.mkdir(exist_ok=True)
-DATABASE_URL = "postgresql://admin:password123@localhost:5432/evaluation_db"
+DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 
 
 app = FastAPI(title="IA Evaluation API")
+
+
+@app.middleware("http")
+async def no_cache_static(request: Request, call_next):
+    response = await call_next(request)
+    # Prevent browser from caching JS/CSS so code changes take effect immediately
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/api/rubrics")

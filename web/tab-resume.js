@@ -46,28 +46,31 @@ function parsedResumeHTML(p) {
 export function renderResumeTab() {
   const d = state.data;
   return `
-    <div class="two-col">
-      <div class="col-source">
-        ${d.pdf_url
-          ? `<div class="card">
-               <div class="card-title">Original Resume PDF</div>
-               <iframe src="${d.pdf_url}" class="pdf-viewer" title="Resume PDF"></iframe>
-             </div>`
-          : `<div class="no-pdf">📄 Resume PDF not available for this record.</div>`
-        }
-        <div class="card">
-          <div class="card-title">AI Parsed Resume</div>
-          <div class="parsed-resume">${parsedResumeHTML(d.parsed_data)}</div>
-        </div>
+    <div class="resume-layout">
+      <!-- Evaluations at the top -->
+      <div class="resume-eval-row">
+        ${rubricPanel('RESUME_ENTITY',     'resume_parsing.entity_accuracy')}
+        ${rubricPanel('RESUME_CHRONOLOGY', 'resume_parsing.chronological_fidelity')}
+        ${rubricPanel('RESUME_QUANT',      'resume_parsing.quantitative_extraction')}
+        ${rubricPanel('RESUME_SKILLS',     'resume_parsing.skill_classification')}
       </div>
 
-      <div class="col-scores">
-        <div class="card">
-          <div class="card-title">Stage 4 — Resume Parsing</div>
-          ${rubricPanel('RESUME_ENTITY',     'stage4.entity_accuracy')}
-          ${rubricPanel('RESUME_CHRONOLOGY', 'stage4.chronological_fidelity')}
-          ${rubricPanel('RESUME_QUANT',      'stage4.quantitative_extraction')}
-          ${rubricPanel('RESUME_SKILLS',     'stage4.skill_classification')}
+      <!-- Side-by-side comparison -->
+      <div class="resume-comparison-grid">
+        <div class="pdf-side">
+          ${d.pdf_url
+            ? `<div class="card">
+                 <div class="card-title">Original Resume PDF</div>
+                 <iframe src="${d.pdf_url}" class="pdf-viewer" title="Resume PDF"></iframe>
+               </div>`
+            : `<div class="no-pdf">📄 Resume PDF not available for this record.</div>`
+          }
+        </div>
+        <div class="parsed-side">
+          <div class="card">
+            <div class="card-title">AI Parsed Resume</div>
+            <div class="parsed-resume">${parsedResumeHTML(d.parsed_data)}</div>
+          </div>
         </div>
       </div>
     </div>`;

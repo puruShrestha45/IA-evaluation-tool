@@ -41,7 +41,7 @@ export function renderQuestionsTab() {
 
   html += questions.map((q, i) => {
     const why = whyFlow[i] || {};
-    const annBase = `questions.plan.${i}`;
+    const annBase = `question_plan.q${i}`;
     return `
       <div class="thread-card">
         <div class="thread-header">
@@ -53,18 +53,19 @@ export function renderQuestionsTab() {
           <div class="thread-left">
             <div>
               <div class="section-label">Question</div>
-              <div class="question-text">${esc(q.question || '')}</div>
+              <div class="question-text">${esc(q.shortened_question || q.question || '')}</div>
+
               ${q.skills_to_be_assessed?.length
                 ? `<div class="skills-assessed">${q.skills_to_be_assessed.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')}</div>`
                 : ''}
               ${q.expected_answer_context
-                ? `<details class="expected-answer">
+                ? `<details open class="expected-answer">
                      <summary>Expected answer context</summary>
                      <p>${esc(q.expected_answer_context)}</p>
                    </details>`
                 : ''}
               ${why.reasoning
-                ? `<details class="expected-answer">
+                ? `<details open class="expected-answer">
                      <summary>Why this question was chosen</summary>
                      <p>${esc(why.reasoning)}</p>
                    </details>`
@@ -73,8 +74,9 @@ export function renderQuestionsTab() {
           </div>
           <div class="thread-right">
             <h4>Rate this question</h4>
-            ${rubricPanel('QUESTION_FIT', `${annBase}.question_fit`)}
-            ${rubricPanel('FAIRNESS',     `${annBase}.fairness`)}
+            ${rubricPanel('QUESTION_SOURCE_INTEGRITY', `${annBase}.source_integrity`)}
+            ${rubricPanel('QUESTION_FIT',              `${annBase}.question_fit`)}
+            ${rubricPanel('FAIRNESS',                  `${annBase}.fairness`)}
           </div>
         </div>
       </div>`;
@@ -82,11 +84,18 @@ export function renderQuestionsTab() {
 
   html += `
     <div class="session-coherence">
-      <h3>Overall Question Set Coherence</h3>
-      <p>Does the set of questions form a logical, complete interview for this role and candidate?</p>
-      <div class="score-row" style="padding:0;margin-top:.5rem">
-        <span class="score-row-label">Score</span>
-        ${scoreButtons('questions.coherence')}
+      <h3>Overall Question Set</h3>
+      ${rubricPanel('FLOW_TIMING',  'question_plan.flow_timing')}
+      ${rubricPanel('NATURALNESS',  'question_plan.naturalness')}
+      <div style="margin-top:1rem">
+        <div class="section-label">Overall Coherence</div>
+        <p style="font-size:.8rem;color:var(--text-mid);margin:.2rem 0 .5rem">
+          Does the set form a logical, complete interview for this role and candidate?
+        </p>
+        <div class="score-row" style="padding:0">
+          <span class="score-row-label">Score</span>
+          ${scoreButtons('question_plan.coherence')}
+        </div>
       </div>
     </div>`;
 

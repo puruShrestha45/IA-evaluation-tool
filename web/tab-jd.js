@@ -14,38 +14,36 @@ function parsedJDHTML(record) {
 
 export function renderJDTab() {
   const d = state.data;
-  const stage1Val = getScore('stage1.label_accuracy');
+  const stage1Val = getScore('doc_classification.label_accuracy');
 
   return `
-    <div class="two-col">
-      <div class="col-source">
-        <div class="card">
-          <div class="card-title">Raw Job Description</div>
-          <textarea class="source-text" readonly>${esc(d.job_context || '')}</textarea>
-        </div>
-        <div class="card">
-          <div class="card-title">AI Parsed Output</div>
-          <div class="parsed-box">${parsedJDHTML(d)}</div>
-        </div>
-      </div>
+    <div class="jd-tab">
 
-      <div class="col-scores">
-        <div class="card">
-          <div class="card-title">Stage 1 — Document Classification</div>
-          <div class="binary-check">
-            <label>Was the correct document identified?</label>
-            <div class="binary-buttons" data-ann-key="stage1.label_accuracy">
-              <button class="binary-btn ${stage1Val === 'CORRECT' ? 'selected correct' : ''}" data-value="CORRECT">✓ Correct</button>
-              <button class="binary-btn ${stage1Val === 'FAIL'    ? 'selected fail'    : ''}" data-value="FAIL">✗ Fail</button>
-            </div>
+      <!-- Row 1: Scoring panels -->
+      <div class="jd-scores-row">
+        <div class="jd-sidebar-card">
+          <div class="jd-sidebar-label">Stage 1 — Doc Classification</div>
+          <p class="jd-sidebar-q">Was the correct document identified?</p>
+          <div class="binary-buttons" data-ann-key="doc_classification.label_accuracy">
+            <button class="binary-btn ${stage1Val === 'CORRECT' ? 'selected correct' : ''}" data-value="CORRECT">✓ Correct</button>
+            <button class="binary-btn ${stage1Val === 'FAIL'    ? 'selected fail'    : ''}" data-value="FAIL">✗ Fail</button>
           </div>
         </div>
+        ${rubricPanel('JD_FIDELITY',     'jd_parsing.fidelity')}
+        ${rubricPanel('JD_COMPLETENESS', 'jd_parsing.completeness')}
+      </div>
 
-        <div class="card">
-          <div class="card-title">Stage 2 — JD Parsing</div>
-          ${rubricPanel('JD_FIDELITY',     'stage2.fidelity')}
-          ${rubricPanel('JD_COMPLETENESS', 'stage2.completeness')}
+      <!-- Row 2: Content side-by-side -->
+      <div class="jd-content-grid">
+        <div class="jd-panel">
+          <div class="jd-panel-header">Raw Job Description</div>
+          <textarea class="jd-textarea" readonly>${esc(d.job_context || '')}</textarea>
+        </div>
+        <div class="jd-panel">
+          <div class="jd-panel-header">AI Parsed Output</div>
+          <div class="jd-parsed-scroll">${parsedJDHTML(d)}</div>
         </div>
       </div>
+
     </div>`;
 }

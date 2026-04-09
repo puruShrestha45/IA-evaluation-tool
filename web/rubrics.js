@@ -120,6 +120,18 @@ export const RUBRICS = {
     },
   },
 
+  QUESTION_SOURCE_INTEGRITY: {
+    label: 'Source Integrity (5.1)',
+    veto: true,
+    scores: {
+      1: 'Hallucinates requirements OR leaks restricted sources ("The hiring manager mentioned…") into candidate-facing text.',
+      2: 'References restricted sources in candidate text ("Based on the intake call…"). Reveals system read restricted docs.',
+      3: 'No leakage. Metadata/reasoning thin or missing — hard to audit why this question was asked.',
+      4: 'Clean: spoken text from resume only; metadata cites JD/Transcript. Minor citation gap.',
+      5: 'Perfect. Spoken question traces to resume claim. Metadata block cites specific source.',
+    },
+  },
+
   QUESTION_FIT: {
     label: 'Question Fit (5.3)',
     veto: false,
@@ -192,10 +204,10 @@ export const RUBRICS = {
     },
   },
 
-  // ── Stage 7 — TimeKeeper ─────────────────────────────────────────────────
+  // ── Stage 9 — TimeKeeper ─────────────────────────────────────────────────
 
   TK_TONE: {
-    label: 'Message Tone & Helpfulness (7.1)',
+    label: 'Message Tone & Helpfulness (9.1)',
     veto: false,
     scores: {
       1: 'Commanding or accusatory ("Move on now." / "You\'re wasting time.") OR completely vague ("Time is passing."). Recruiter either feels pressured or gets no useful guidance.',
@@ -207,7 +219,7 @@ export const RUBRICS = {
   },
 
   TK_REPETITION: {
-    label: 'Repetition & Contextualization (7.2)',
+    label: 'Repetition & Contextualization (9.2)',
     veto: false,
     scores: {
       1: 'Same text sent back-to-back in rapid succession with no change in situation. Recruiter is bombarded.',
@@ -219,7 +231,7 @@ export const RUBRICS = {
   },
 
   TK_NARRATIVE: {
-    label: 'Session Narrative & Flow (7.3)',
+    label: 'Session Narrative & Flow (9.3)',
     veto: false,
     scores: {
       1: 'Incoherent — e.g., CRITICAL alerts when interview was on schedule, random severity jumps, or recovery with no prior problem.',
@@ -268,10 +280,10 @@ export const RUBRICS = {
     },
   },
 
-  // ── Stage 9 — Interview Analysis ─────────────────────────────────────────
+  // ── Stage 11 — Interview Analysis ────────────────────────────────────────
 
   IA_STRUCTURAL: {
-    label: 'Structural & Schema Integrity (9.1)',
+    label: 'Structural & Schema Integrity (11.1)',
     veto: true,
     scores: {
       1: 'Any skill area appears more than once. OR a skill that was planned but not asked receives the wrong zero-score summary. OR the overall band does not match its score range.',
@@ -283,7 +295,7 @@ export const RUBRICS = {
   },
 
   IA_CALIBRATION: {
-    label: 'Score Calibration & Synthesis (9.2)',
+    label: 'Score Calibration & Synthesis (11.2)',
     veto: false,
     scores: {
       1: 'Skill scores contradict the per-question evaluations (e.g., per-question score of 2, skill band "Proficient"). OR overall score is a plain average with no weighting visible.',
@@ -295,7 +307,7 @@ export const RUBRICS = {
   },
 
   IA_DISCUSSION: {
-    label: 'Discussion Points Quality (9.3)',
+    label: 'Discussion Points Quality (11.3)',
     veto: false,
     scores: {
       1: 'Uses language that overstates certainty about what the JD requires. OR invents a JD connection for a skill not in the JD. OR questions use soft, indirect openers.',
@@ -305,4 +317,93 @@ export const RUBRICS = {
       5: 'Discussion points are precisely targeted. Reasoning is factual and surface-level — it flags without rendering a verdict. Questions are direct, specific, and flow naturally from the reasoning. JD references are soft and accurate.',
     },
   },
+
+  // ── Stage 7 — Answer Evaluation (Per-Question) ───────────────────────────
+
+  ANSWER_SCORE_ACCURACY: {
+    label: 'Score Accuracy (7.1)',
+    veto: true,
+    scores: {
+      1: 'Score contradicts the answer — high for vague/wrong, low for clear/detailed. OR score based on invented content not in the transcript.',
+      2: 'Directionally correct but significantly off in magnitude. A 7 for an answer reviewers would rate 3–4, or vice versa.',
+      3: 'Right range. Minor calibration drift — off by 1–2 points in a predictable direction (too generous or too strict).',
+      4: 'Matches quality with at most 1-point drift. Consistent calibration. Hard and easy answers correctly separated.',
+      5: 'Precisely calibrated. A reviewer reading the transcript and score would immediately agree. No drift across easy/medium/hard answers.',
+    },
+  },
+
+  ANSWER_EVIDENCE_GROUNDING: {
+    label: 'Evidence Grounding (7.2)',
+    veto: true,
+    scores: {
+      1: 'One or more strengths or gaps reference content the candidate did not say. Fabricated claims present.',
+      2: 'No fabrication, but draws on prior turns without flagging it — creating a false impression of this specific answer.',
+      3: 'All claims traceable to the transcript. Some are vague paraphrases that lose the specificity of what was actually said.',
+      4: 'All claims specific and traceable. Vague paraphrases absent. Each strength and gap maps to a discrete candidate statement.',
+      5: 'Every claim directly quoted or precisely paraphrased. A reviewer could verify each claim without ambiguity.',
+    },
+  },
+
+  ANSWER_CLASSIFICATION_ACCURACY: {
+    label: 'Classification Accuracy (7.3)',
+    veto: false,
+    scores: {
+      1: 'Label crosses the follow-up boundary — Strong/Excellent when score <7, or Irrelevant/Basic/Adequate when score ≥7.',
+      2: 'Label wrong but both assigned and correct labels are on the same side of the score-7 threshold. Or wrong scoring system applied.',
+      3: 'Correct for clear cases. Struggles on borderline Adequate vs. Strong (score 6 vs 7), or wrong system for role seniority.',
+      4: 'Correct including borderline cases. Correct scoring system applied. Label and numeric score internally consistent.',
+      5: 'Precisely reflects quality within the correct system. Reasoning explicitly maps label choice to observable transcript evidence.',
+    },
+  },
+
+  ANSWER_GAP_STRENGTH: {
+    label: 'Gap & Strength Identification (7.4)',
+    veto: false,
+    scores: {
+      1: 'Strengths or gaps are fabricated. OR major strength missed entirely. OR critical gap not identified when answer clearly showed one.',
+      2: 'Correct direction but vague. Strengths listed are generic ("good communication"). Gaps are too broad ("lacks depth").',
+      3: 'Correct identification of main strength and main gap. Missing secondary gaps a careful reviewer would note.',
+      4: 'All significant strengths and gaps identified. Each specific enough to be actionable for the follow-up decision. No fabrication.',
+      5: 'Precisely identified and ordered by significance. Each maps to the skill being assessed. A follow-up could be derived directly from the gaps.',
+    },
+  },
+
+  // ── Stage 8 — Follow-Up Question Generation ──────────────────────────────
+
+  FOLLOWUP_ANSWER_GROUNDING: {
+    label: 'Answer Grounding (8.2)',
+    veto: false,
+    scores: {
+      1: 'Template question with no connection to the candidate\'s answer — could have been asked before they spoke.',
+      2: 'References the general topic of the answer but not any specific claim or gap the candidate created.',
+      3: 'References the answer generally ("you mentioned X — can you go deeper?") but doesn\'t target the specific missing piece.',
+      4: 'Targets a specific gap from the candidate\'s answer. A reviewer would immediately understand why this follow-up was chosen.',
+      5: 'Precisely derived from the answer. Names the specific claim or absence. The exact probe needed to resolve the gap.',
+    },
+  },
+
+  FOLLOWUP_CHAIN_COHERENCE: {
+    label: 'Chain Coherence (8.3)',
+    veto: false,
+    scores: {
+      1: 'Shifts to a different skill domain with no logical connection to the answer.',
+      2: 'Same general topic but lateral — doesn\'t probe deeper on the identified gap.',
+      3: 'On-topic and adds some value. Probes one level deeper but misses the most important sub-gap.',
+      4: 'One deliberate level deeper on the right sub-skill. Candidate and reviewer would both understand why this question follows.',
+      5: 'Precise next step in competency assessment. Original + follow-up together tell a complete story of the skill.',
+    },
+  },
+
+  FOLLOWUP_FRAMING: {
+    label: 'Framing & Naturalness (8.4)',
+    veto: false,
+    scores: {
+      1: 'Leaks internal state — uses evaluation language, score references, or system framing visible to the candidate.',
+      2: 'Indirect openers ("Can you", "Could you", "Would you") or passive-aggressive framing.',
+      3: 'Professional and direct. May feel slightly generic or formal. Clearly AI-generated but not off-putting.',
+      4: 'Sounds like a skilled interviewer\'s natural next question. Direct, specific, conversational. No evaluative language.',
+      5: 'Seamless. Acknowledges the candidate\'s answer as curiosity, not interrogation. Indistinguishable from a skilled human probe.',
+    },
+  },
+
 };
