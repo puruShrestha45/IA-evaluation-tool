@@ -527,15 +527,239 @@ When a recruiter's statement arrives in multiple transcript chunks (due to trans
 
 ---
 
-## Stage 7 — TimeKeeper
+## Stage 7 — Answer Evaluation (Per-Question)
+
+**Purpose:** For each question asked during the interview, assess the quality of the AI system's evaluation of the candidate's response. The evaluator receives the question text, the candidate's answer (from the live transcript), and the skill(s) the question was designed to assess. It produces: a numeric score (0–10), a rubric label (Irrelevant / Basic / Adequate / Strong / Excellent), key strengths observed, and gaps or missing signals.
+
+This stage gates the follow-up question generation decision (Stage 8) and feeds into the post-interview analysis (Stage 11). Errors here silently bias every downstream component.
+
+---
+
+### 7.1 Score Accuracy `VETO`
+
+Does the numeric score correctly reflect the quality of the candidate's answer relative to the skill being assessed?
+
+> ⚠ **VETO:** A score that contradicts the observable evidence in the transcript corrupts the follow-up routing decision and the post-interview skill band. Any fabricated positive or negative signal driving the score → automatic FAIL.
+
+| 1 FAIL                                                                                                                                                | 2 POOR                                                                                                                                          | 3 OK                                                                                                                   | 4 GOOD                                                                                                                                        | 5 EXCELLENT                                                                                                                                                    |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Score contradicts the answer — high score for a vague or wrong answer, or low score for a clear, detailed answer. OR score is based on invented content not present in the transcript. | Score is directionally correct but significantly off in magnitude. A 7 for an answer that any reviewer would rate 3–4, or vice versa. | Score is in the right range. Minor calibration drift — off by 1–2 points in a predictable direction (too generous or too strict across all answers). | Score matches the answer quality with at most 1-point drift. Consistent calibration. Hard answers and easy answers are correctly separated. | Score is precisely calibrated to the answer. A reviewer reading the transcript and the score would immediately agree. No drift across easy, medium, or hard answers. |
+
+**Decision Rules:**
+
+- ▸ IF the score is ≥5 points away from what the transcript evidence supports → FAIL.
+- ▸ IF the evaluation references content the candidate did not say ("candidate mentioned X" when they did not) → FAIL. Fabricated evidence is a scoring integrity failure.
+- ▸ IF the score is 3–4 points off but in the correct direction → cap at 2.
+- ▸ IF the score is within 2 points and the calibration is directionally correct → ≥3.
+- ▸ IF the score is within 1 point across all evaluated turns → 4. Within 1 point AND consistent calibration across easy/hard answers → 5.
+
+**Counting Method:**
+
+1. For each evaluated answer, establish the ground-truth score range based on transcript evidence (review what the candidate said against the skill criteria).
+2. Compute deviation: |AI score − ground truth midpoint|.
+3. 0–1 deviation → score 4–5. 2 deviation → score 3. 3–4 deviation → score 2. ≥5 deviation OR fabricated evidence → score 1.
+
+**Anchor Example — 2 vs 3 boundary:**
+
+> *Question: "Walk me through how you've designed a database schema for a high-traffic application." Candidate gave a vague answer: mentioned normalization, didn't describe any specific design choices, didn't address scale. Ground truth: 3–4/10. AI score: 6/10 with note "candidate demonstrated solid understanding of normalization." — Off by 2–3 points, directionally wrong (too generous), but no fabrication. → Score 2. If AI scored 5/10 with a note that correctly identifies the vagueness → Score 3.*
+
+---
+
+### 7.2 Evidence Grounding `VETO`
+
+Is every claim in the evaluation — strengths, gaps, score rationale — traceable to something the candidate actually said in this turn's transcript?
+
+> ⚠ **VETO:** Any fabricated claim (attributing a statement the candidate did not make) means the evaluation is untrustworthy as evidence for the follow-up decision and the analysis report.
+
+| 1 FAIL                                                                                                                           | 2 POOR                                                                                                                                              | 3 OK                                                                                                                        | 4 GOOD                                                                                                                                  | 5 EXCELLENT                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| One or more strengths or gaps reference content the candidate did not say in this turn. Fabricated claims present. | No fabrication, but evaluation draws on prior turns' content without flagging it — creating a false impression of what this specific answer showed. | All claims traceable to the transcript. Some claims are vague paraphrases that lose the specificity of what was actually said. | All claims specific and traceable. Vague paraphrases absent. Each strength and gap maps to a discrete candidate statement. | Every claim is directly quoted or precisely paraphrased with a clear mapping to the transcript. A reviewer could verify each claim without ambiguity. |
+
+**Decision Rules:**
+
+- ▸ IF the evaluation says "candidate mentioned X" or "candidate demonstrated X" and X is not present in the transcript of this turn → FAIL.
+- ▸ IF the evaluation references something from a prior turn (e.g., "building on what they said earlier") without flagging it as cross-turn context → cap at 2. Cross-turn references are allowed but must be labeled as such.
+- ▸ IF all claims are traceable but one or more are too vague to verify (e.g., "candidate showed technical depth" with no specific link) → cap at 3.
+- ▸ IF all claims are traceable and specific → ≥4. IF additionally every claim could be directly verified by reading the transcript → 5.
+
+**Anchor Example — FAIL vs 3 boundary:**
+
+> *Candidate answer: "I've used PostgreSQL in my last two jobs, mostly for read-heavy workloads. We had some indexing work but I didn't lead it." Evaluation states: "Candidate demonstrated strong hands-on experience designing indexes for scale." — Candidate said they didn't lead the indexing work. This is a fabricated strength → FAIL. Corrected evaluation: "Candidate mentioned indexing experience but indicated they were not the lead — depth of hands-on involvement is unclear." → Score 3 (traceable, but the gap identification is vague).*
+
+---
+
+### 7.3 Answer Classification Accuracy `HIGH`
+
+Does the rubric label (Irrelevant / Basic / Adequate / Strong / Excellent) correctly describe the answer's quality relative to the role's seniority level?
+
+The rubric label determines whether a follow-up is generated. Follow-up generation is triggered when the numeric score is < 7. A misclassification that crosses the score-7 boundary in either direction incorrectly gates the follow-up decision.
+
+Two scoring systems apply depending on role seniority (`years_of_experience_required`):
+- **System 1 (0–2 yrs, Junior/Intern):** 0 = Irrelevant, 1–6 = Adequate, 7–9 = Strong, 10 = Excellent. No Basic band.
+- **System 2 (3+ yrs, Mid/Senior):** 0 = Irrelevant, 1–3 = Basic, 4–6 = Adequate, 7–8 = Strong, 9–10 = Excellent.
+
+| 1 FAIL                                                                                                                                        | 2 POOR                                                                                                                                                              | 3 OK                                                                                                                                           | 4 GOOD                                                                                                                                     | 5 EXCELLENT                                                                                                                                                          |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Label crosses the follow-up boundary in the wrong direction — Strong/Excellent assigned when score < 7, or Irrelevant/Basic/Adequate when score ≥ 7. | Label is wrong but both the assigned and correct label are on the same side of the score-7 threshold (e.g., Basic vs Adequate in System 2 — both trigger follow-up). | Label is correct for clear cases. Struggles on borderline Adequate vs. Strong (score 6 vs 7) or wrong system applied for the role's seniority. | Label is correct including borderline cases. Correct scoring system applied. Label and numeric score are internally consistent. | Label precisely reflects the answer quality within the correct system. Reasoning explicitly maps the label choice to observable transcript evidence. |
+
+**Classification Reference:**
+
+| Label      | System 1 (0–2 yrs) | System 2 (3+ yrs) | Definition                                                                                                    |
+| ---------- | ------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Irrelevant | 0                   | 0                  | Answer is completely off-topic, nonsensical, or candidate refused to engage.                                 |
+| Basic      | *(not used)*        | 1–3                | Superficial. Can describe *what* a concept is but struggles to explain *why*. Significant knowledge gap.      |
+| Adequate   | 1–6                 | 4–6                | Meets minimum expectations. Can describe what was done with some reasoning, but misses trade-offs or depth.  |
+| Strong     | 7–9                 | 7–8                | Solid. Explains choices, justifies trade-offs, understands context and implications.                          |
+| Excellent  | 10                  | 9–10               | Deep insight. Proactive problem-solving, systems-level thinking, connects technical decisions to outcomes.     |
+
+**Decision Rules:**
+
+- ▸ **Follow-up threshold VETO:** IF the label is Strong or Excellent but the score is < 7 (or vice versa) → FAIL. This is a boundary violation that directly corrupts follow-up routing.
+- ▸ IF the wrong scoring system is applied for the role's seniority level (e.g., System 2 used for a junior role, missing that Basic is not a valid label) → cap at 2.
+- ▸ IF label is wrong but both assigned and correct label are below score 7 (e.g., Basic vs Adequate in System 2) → cap at 2. The follow-up still triggers correctly, but calibration is off.
+- ▸ IF label is correct and consistent with the numeric score → ≥3. IF additionally the correct system is applied AND reasoning cites transcript evidence → ≥4. IF reasoning is explicit enough to verify → 5.
+
+**Anchor Example — Adequate vs Strong (score-7 boundary):**
+
+> *Role: 5 years experience (System 2). Question assesses "database indexing strategy." Candidate explains B-tree vs hash indexes and gives a production example, but doesn't discuss trade-offs for write-heavy workloads. Correct: score 6, label Adequate — follow-up should be generated. Misclassified: score 7, label Strong — no follow-up generated. The score-6 vs score-7 call is the critical boundary; a score of 6 with label Strong is also a FAIL (label/score inconsistency).*
+
+---
+
+### 7.4 Gap & Strength Identification `MEDIUM`
+
+Does the evaluation correctly identify what the candidate demonstrated (strengths) and what was missing or unclear (gaps), at the right level of specificity?
+
+| 1 FAIL                                                                                           | 2 POOR                                                                                                                 | 3 OK                                                                                                                    | 4 GOOD                                                                                                                               | 5 EXCELLENT                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Strengths or gaps are fabricated. OR major strength is missed entirely. OR critical gap not identified when the answer clearly showed one. | Correct direction but vague. Strengths listed are generic ("good communication"). Gaps are too broad ("lacks depth"). | Correct identification of the main strength and main gap. Missing secondary gaps or strengths that a careful reviewer would note. | All significant strengths and gaps identified. Each is specific enough to be actionable for the follow-up decision. No fabrication. | Strengths and gaps are precisely identified and ordered by significance. Each maps directly to the skill being assessed. A follow-up question could be derived directly from the gaps listed. |
+
+**Decision Rules:**
+
+- ▸ IF any listed strength or gap was not observable in the transcript → cap at 2 (borders on fabrication).
+- ▸ IF the primary gap (the most important missing signal for this skill) is not identified → cap at 2.
+- ▸ IF gaps are identified but described in terms too generic to drive a follow-up (e.g., "could elaborate more") → cap at 3.
+- ▸ IF all gaps are specific and map to the skill criteria → ≥4. IF additionally ordered by significance → 5.
+
+**Anchor Example — 3 vs 4 boundary:**
+
+> *Skill: "Database schema design." Candidate described normalization and gave a real example but never mentioned indexing strategy or scalability trade-offs. Score-3 gap: "Candidate could go deeper on schema design." Score-4 gap: "Candidate did not address indexing strategy or scalability trade-offs — both are central to the skill. A follow-up on trade-offs for write-heavy vs. read-heavy schemas would surface whether this is a knowledge gap or just a time constraint."*
+
+---
+
+## Stage 8 — Follow-Up Question Generation
+
+**Purpose:** After the answer evaluator classifies a candidate's response (Stage 7), determine whether a follow-up is warranted and, if so, generate a targeted probe. The generator receives: the original question, the candidate's answer, the numeric score and rubric label (Irrelevant / Basic / Adequate / Strong / Excellent) from Stage 7, the identified gaps, the skill being assessed, and the remaining interview budget. It outputs: a follow-up decision (yes/no) and, if yes, a follow-up question.
+
+The follow-up question is delivered to the candidate through the recruiter — it must be natural, grounded in what was said, and must not reveal internal state (score, classification, or system reasoning).
+
+---
+
+### 8.1 Necessity Judgment `VETO`
+
+Is the decision to generate a follow-up (or not) correct given the answer classification and the remaining interview context?
+
+> ⚠ **VETO:** Generating a follow-up when the score is ≥7 wastes a scarce slot. Skipping a follow-up when the score is <7 leaves a critical signal unresolved. Either direction, when clearly wrong, is a pipeline failure.
+
+| FAIL                                                                                                                                                                  | CORRECT                                                                                                                                                            |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Follow-up generated when score ≥ 7 (Strong or Excellent) — the candidate demonstrated sufficient competency. OR no follow-up generated when score < 7 — a weak or irrelevant answer went unchallenged. | Follow-up decision matches the score threshold: generated when score < 7, suppressed when score ≥ 7, respecting the remaining interview budget. |
+
+**Decision Rules:**
+
+- ▸ IF score ≥ 7 (Strong or Excellent) AND follow-up is generated → FAIL.
+- ▸ IF score = 0 (Irrelevant) AND no follow-up is generated → FAIL. A completely off-topic answer must be challenged.
+- ▸ IF score < 7 (Irrelevant / Basic / Adequate) AND no follow-up is generated AND remaining budget allows one → FAIL.
+- ▸ IF score ≥ 7 AND no follow-up is generated → CORRECT. The skill was demonstrated sufficiently.
+- ▸ IF score < 7 AND follow-up is generated AND it targets the identified gap → CORRECT.
+- ▸ IF remaining follow-up budget is exhausted AND no follow-up is generated for a score < 7 answer → CORRECT. Budget constraints override the probe trigger.
+
+**Anchor Example — FAIL:**
+
+> *Candidate gave a strong answer scoring 8/10 (Strong): detailed explanation of distributed locking, covered optimistic vs. pessimistic locking, gave a production example, addressed failure modes. System generates follow-up: "Can you tell me more about how you handled lock contention?" — Score ≥ 7, follow-up should not trigger. The answer already covered contention. → FAIL.*
+
+---
+
+### 8.2 Answer Grounding `HIGH`
+
+Is the follow-up question anchored to something specific from the candidate's answer — not a generic next-topic probe?
+
+| 1 FAIL                                                                                                           | 2 POOR                                                                                                                    | 3 OK                                                                                           | 4 GOOD                                                                                                                                      | 5 EXCELLENT                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Follow-up is a template question with no connection to the candidate's answer — could have been asked before they spoke. | Follow-up references the general topic of the answer but not any specific claim or gap the candidate created. | Follow-up references the answer in a general way ("you mentioned X — can you go deeper?") but doesn't target the specific missing piece. | Follow-up targets a specific gap from the candidate's answer. A reviewer reading the transcript would immediately understand why this follow-up was chosen. | Follow-up is precisely derived from the candidate's answer. It names the specific claim or absence, and the probe is the exact question needed to resolve the gap. |
+
+**Decision Rules:**
+
+- ▸ IF the follow-up question could have been asked before the candidate said anything → cap at 2.
+- ▸ IF the follow-up names the general topic but not a specific statement or gap → cap at 3.
+- ▸ IF the follow-up references a specific element of the answer AND targets the identified gap → ≥4.
+- ▸ IF the follow-up is so precisely derived that it could only have been generated from this specific answer → 5.
+- ▸ IF the follow-up attributes a claim the candidate did not make → FAIL (fabricated grounding).
+
+**Anchor Example — 3 vs 4 boundary:**
+
+> *Candidate explained database sharding by partitioning on user ID but didn't address hot spots or re-sharding costs. Score-3 follow-up: "Can you go deeper on the trade-offs of your sharding approach?" — references the topic but not the gap. Score-4 follow-up: "You partitioned by user ID — how did you handle hot spots when certain users generated disproportionate traffic, and what was the cost of re-sharding if the partition key turned out to be wrong?" — derived directly from what was said and precisely targets both missing signals.*
+
+---
+
+### 8.3 Chain Coherence `HIGH`
+
+Does the follow-up question logically deepen the assessment of the same skill, or does it jump to an adjacent topic without justification?
+
+| 1 FAIL                                                                              | 2 POOR                                                                                          | 3 OK                                                                                                        | 4 GOOD                                                                                                              | 5 EXCELLENT                                                                                                                                                      |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Follow-up shifts to a different skill domain with no logical connection to the answer. | Follow-up is on the same general topic but lateral — it doesn't probe deeper on the identified gap. | Follow-up is on-topic and adds some value. Probes one level deeper but misses the most important sub-gap. | Follow-up is one deliberate level deeper on the right sub-skill. The candidate and reviewer would both understand why this question follows. | Follow-up is the precise next step in a coherent competency assessment. The full question sequence (original + follow-up) tells a complete story of the skill. |
+
+**Decision Rules:**
+
+- ▸ IF the follow-up introduces a skill domain not connected to the original question or the candidate's answer → cap at 2.
+- ▸ IF the follow-up is on the same topic but doesn't deepen the assessment (lateral, not vertical) → cap at 3.
+- ▸ IF the follow-up probes one level deeper on the correct sub-skill → ≥4.
+- ▸ IF the original question + follow-up together constitute a complete assessment of the skill → 5.
+
+**Anchor Example — FAIL vs 3:**
+
+> *Original question assesses "conflict resolution in team settings." Candidate described a specific disagreement with a PM over scope. Follow-up (FAIL): "How do you approach performance management for underperforming engineers?" — different skill domain, no connection to the conflict described. Follow-up (Score 3): "How did you know when the conflict was resolved — what did resolution look like?" — on-topic and adds some value, but doesn't probe the most important gap (whether the candidate escalated appropriately or avoided hard conversations).*
+
+---
+
+### 8.4 Framing & Naturalness `MEDIUM`
+
+Is the follow-up question worded as a direct, natural probe — free of internal evaluation language, indirect openers, and phrasing that signals system judgment to the candidate?
+
+| 1 FAIL                                                                                                                  | 2 POOR                                                                                                                    | 3 OK                                                                                               | 4 GOOD                                                                                                            | 5 EXCELLENT                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Follow-up leaks internal state — uses evaluation language ("your answer was incomplete", "you didn't address X"), score references, or system framing. | Follow-up uses indirect openers ("Can you", "Could you", "Would you") or passive-aggressive framing ("You mentioned X — but can you prove that?"). | Follow-up is professional and direct. May feel slightly generic or formal. Clearly AI-generated but not off-putting. | Follow-up sounds like a skilled interviewer's natural next question. Direct, specific, conversational. No evaluative language. | Follow-up is seamless. It acknowledges the candidate's answer in a way that feels like curiosity, not interrogation. Indistinguishable from a skilled human probe. |
+
+**Decision Rules:**
+
+- ▸ IF the follow-up contains evaluation language visible to the candidate ("your answer was insufficient", "you didn't cover", "the system expected") → FAIL.
+- ▸ IF any follow-up begins with "Can you", "Could you", "Would you", or similar soft openers → cap at 3.
+- ▸ IF the follow-up phrases the probe as a challenge to re-prove something the candidate already clearly stated → cap at 3.
+- ▸ IF the follow-up is direct (imperative or open question without soft opener) and conversational → ≥4.
+- ▸ IF the follow-up naturally acknowledges the candidate's answer before probing (without revealing evaluation) → 5.
+
+**Counting Method:**
+
+1. Check for evaluation language → if present, FAIL.
+2. Check opener phrasing → if soft opener, cap at 3.
+3. Check for passive-aggressive framing → if present, cap at 3.
+4. If none of the above: rate 4–5 based on naturalness.
+
+**Anchor Example — 3 vs 4 boundary:**
+
+> *Score-3: "Could you elaborate on the trade-offs you considered when choosing your sharding key?" — Indirect opener, slightly generic. Score-4: "Walk me through the trade-offs you weighed when picking that sharding key — specifically what made user ID the right choice over other options." — Direct, specific, grounded in the answer, no soft opener.*
+
+---
+
+## Stage 9 — TimeKeeper
 
 **Purpose:** Guide the recruiter through the interview's pacing — alerting them when to slow down, speed up, skip questions, or wrap up — in a way that feels like a helpful co-pilot, not a system alarm. The core question across all dimensions: *would a recruiter following these alerts have conducted a better-paced interview?*
 
-Evaluation is done at the **session level**: the reviewer receives the complete ordered list of TimeKeeper messages with elapsed timestamps for a full interview. Individual message quality is scored in 7.1; how well the system handles repetition and contextualizes ongoing problems in 7.2; and the overall coherence of the full sequence — including recovery — in 7.3.
+Evaluation is done at the **session level**: the reviewer receives the complete ordered list of TimeKeeper messages with elapsed timestamps for a full interview. Individual message quality is scored in 9.1; how well the system handles repetition and contextualizes ongoing problems in 9.2; and the overall coherence of the full sequence — including recovery — in 9.3.
 
-> *Note on tone vs. helpfulness: These two qualities are evaluated as one dimension (7.1). Tone (collaborative vs. commanding) and helpfulness (actionable vs. vague) are not scored separately — a message that is politely worded but useless fails just as much as one that is blunt and clear. What matters is whether the recruiter, on reading the message, feels guided and knows what to do next.*
+> *Note on tone vs. helpfulness: These two qualities are evaluated as one dimension (9.1). Tone (collaborative vs. commanding) and helpfulness (actionable vs. vague) are not scored separately — a message that is politely worded but useless fails just as much as one that is blunt and clear. What matters is whether the recruiter, on reading the message, feels guided and knows what to do next.*
 
-### 7.1 Message Tone & Helpfulness `HIGH`
+### 9.1 Message Tone & Helpfulness `HIGH`
 
 Does each alert guide the recruiter with a supportive, actionable message — not a command, and not a vague status update?
 
@@ -565,7 +789,7 @@ Does each alert guide the recruiter with a supportive, actionable message — no
 
 ---
 
-### 7.2 Repetition & Contextualization `HIGH`
+### 9.2 Repetition & Contextualization `HIGH`
 
 The TimeKeeper will naturally repeat messages when a problem persists — this is expected and desirable. This dimension judges whether repeated messages are sent at a sensible frequency for the situation and whether they add context rather than just restating the same thing.
 
@@ -598,7 +822,7 @@ This is primarily a qualitative judgment based on reading the full session log.
 
 ---
 
-### 7.3 Session Narrative & Flow `HIGH`
+### 9.3 Session Narrative & Flow `HIGH`
 
 Evaluated as a birds-eye view of the full interview. Does the complete sequence of TimeKeeper messages — escalation, reminders, and recovery — tell a coherent story that tracks what actually happened in the interview?
 
@@ -632,7 +856,7 @@ This is a holistic judgment. Score based on the reviewer's overall impression af
 
 ---
 
-## Stage 8 — Drift Detection
+## Stage 10 — Drift Detection
 
 **Purpose:** Notify the recruiter in real time when a candidate drifts from the active interview question — without false positives on ignorance, spam while waiting for recruiter action, or missing genuine drift escalation. The component is also being explored as a source of actionable guidance, potentially surfacing suggested redirect approaches the recruiter can use to bring the candidate back on topic.
 
@@ -640,7 +864,7 @@ This is a holistic judgment. Score based on the reviewer's overall impression af
 
 The agent receives: the active question (if a follow-up question is in play for the current topic, it takes precedence over the original question), the full conversation transcript so far, and a history of drift alerts already sent in this session. It outputs a severity tag (INFO / WARNING / CRITICAL / NONE) and a short message string.
 
-### 8.1 Drift Detection Accuracy `HIGH`
+### 10.1 Drift Detection Accuracy `HIGH`
 
 Given this conversation excerpt, did the agent correctly judge whether the candidate is on-topic or off-topic?
 
@@ -664,7 +888,7 @@ Given this conversation excerpt, did the agent correctly judge whether the candi
 
 ---
 
-### 8.2 State Machine Compliance `HIGH`
+### 10.2 State Machine Compliance `HIGH`
 
 Does the agent correctly advance through the three drift states based on what has already happened in the conversation?
 
@@ -695,7 +919,7 @@ The three states: **State 1** (first detected drift → WARNING) → **State 2**
 
 ---
 
-### 8.3 Message Quality & Actionability `MEDIUM`
+### 10.3 Message Quality & Actionability `MEDIUM`
 
 Are the agent's drift alerts clear, non-technical, and appropriately urgent — and do they give the recruiter a concrete redirect approach they can use to bring the candidate back on topic?
 
@@ -714,7 +938,7 @@ When the agent detects drift, it provides two things: a short alert message and 
 
 ---
 
-## Stage 9 — Interview Analysis
+## Stage 11 — Interview Analysis
 
 **Purpose:** After the interview concludes, the analysis synthesizes all per-question evaluations, the conversation transcript, the job description, and the planned skill coverage into a hiring report for the next interviewer (typically a senior engineer or hiring manager). This is not a re-scorer — per-question scores are already computed. The analysis aggregates that evidence into four outputs: a holistic performance summary, a skill-by-skill assessment with bands and scores, an overall hiring recommendation, and targeted discussion points with follow-up questions for the next round.
 
@@ -722,7 +946,7 @@ The agent receives: the parsed job description, the skill categories the role re
 
 ---
 
-### 9.1 Structural & Schema Integrity `VETO`
+### 11.1 Structural & Schema Integrity `VETO`
 
 Does the output follow the mandatory structural rules that, if broken, produce a misleading or unusable report?
 
@@ -744,7 +968,7 @@ Does the output follow the mandatory structural rules that, if broken, produce a
 
 ---
 
-### 9.2 Score Calibration & Synthesis `HIGH`
+### 11.2 Score Calibration & Synthesis `HIGH`
 
 Do skill-level scores reflect the actual interview evidence, and does the overall score represent a meaningful weighted synthesis rather than a mechanical average?
 
@@ -757,7 +981,7 @@ Do skill-level scores reflect the actual interview evidence, and does the overal
 - ▸ IF a skill's band and score contradict its per-question evaluation (e.g., a per-question score of 2 resulting in a skill band of "Proficient") → cap at 2. The per-question scores are the primary evidence; the analysis must not drift from them without justification.
 - ▸ IF the overall score appears to be a simple average of skill scores with no weighting → cap at 3. Skills mentioned prominently in the job description should carry more weight.
 - ▸ IF a skill area has multiple questions, the skill score should synthesize across all of them — not just reflect the last one. Single-question bias → cap at 3.
-- ▸ IF the overall score band does not match the score value → FAIL (also scored in 8.1 — both dimensions penalize this).
+- ▸ IF the overall score band does not match the score value → FAIL (also scored in 10.1 — both dimensions penalize this).
 
 **Anchor Example — 3 vs 4 boundary:**
 
@@ -765,7 +989,7 @@ Do skill-level scores reflect the actual interview evidence, and does the overal
 
 ---
 
-### 9.3 Discussion Points Quality `HIGH`
+### 11.3 Discussion Points Quality `HIGH`
 
 Are the discussion points targeted, well-reasoned, and genuinely useful to the next interviewer — and are the follow-up questions direct, specific, and free of problematic framing?
 
@@ -789,7 +1013,7 @@ Are the discussion points targeted, well-reasoned, and genuinely useful to the n
 
 ---
 
-## Stage 10 — Ask IA
+## Stage 12 — Ask IA
 
 **Purpose:** A conversational agent that lets recruiters and hiring managers query interview information through natural dialogue. Ask IA reads seven source documents and must answer grounded in evidence, enforce scope boundaries, and respond in plain English regardless of query language.
 
@@ -807,7 +1031,7 @@ Are the discussion points targeted, well-reasoned, and genuinely useful to the n
 
 ---
 
-### 10.1 Source Grounding `VETO`
+### 12.1 Source Grounding `VETO`
 
 | 1 FAIL                                                                                                   | 2 POOR                                                                                                                                                                                                                                                              | 3 OK                                                                                                                                                                                                                                                 | 4 GOOD                                                                                                                                                                                                                                                                           | 5 EXCELLENT                                                                                                                                                                                                                                              |
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -895,7 +1119,7 @@ Score matrix:
 
 > *User: "You mentioned earlier the candidate scored 9 out of 10, right?" final_interview_analysis shows overall_score = 7. Score 3: System has been correctly verifying all sources throughout, but here simply responds: "Their performance was strong across the technical areas." Does not challenge the false claim at all — moves past it. Score 4: "I don't think that's the score — the candidate didn't score 9 out of 10." Correctly identifies the claim as wrong but gives no source truth. Score 5: "That's not the figure — the candidate's overall score was 7 out of 10, as shown in the interview analysis." Identifies the false claim AND corrects it by citing the source truth.*
 
-### 10.2 Scope Enforcement `VETO`
+### 12.2 Scope Enforcement `VETO`
 
 > ⚠ **VETO:** Answering a **hard out-of-scope query** (math, geography, general knowledge, other-candidate comparison, or requests for other roles) with substantive content, OR responding in a non-English language, OR leaking internal JSON field names or system architecture details = automatic score 1, failing the entire output.
 > **Chitchat queries (greetings, pleasantries, capability questions, social small talk) are NOT hard out-of-scope and are evaluated under Dimension 3.**
@@ -949,7 +1173,7 @@ Score matrix:
 
 ---
 
-### 10.3 Context Handling Vs Context Poisoning `VETO`
+### 12.3 Context Handling Vs Context Poisoning `VETO`
 
 **Purpose:** Scored AFTER all turns in a session. Checks whether a grounding error from an early turn was carried forward and presented as established fact in a later turn.
 
@@ -975,7 +1199,7 @@ Score matrix:
 
 ---
 
-### 10.4 Chitchat Handling
+### 12.4 Chitchat Handling
 
 > ℹ️ **No VETO on this dimension.** A poor chitchat response leaves the user without direction but does not compromise factual accuracy. Score ≤ 2 is reported as a quality flag.
 
@@ -1033,7 +1257,7 @@ Chitchat queries are social or conversational moves that are neither answerable 
 
 ---
 
-### 10.5 Response Tone
+### 12.5 Response Tone
 
 **Purpose:** Evaluates *how* the system communicates — whether responses are professional, neutral, appropriately sized, and compliant with the hiring disclaimer protocol. This dimension uses four independently observable sub-checks scored per turn, not a holistic impression.
 
@@ -1070,7 +1294,7 @@ Trigger: Every turn.
 - FAIL (score ≤ 2): Simple query receives a multi-sentence preamble before the actual answer. Example: "I have reviewed the interview transcript. Based on the logistical questions that were asked outside the skill coverage plan. The candidate stated they prefer to work from home." — three sentences before a one-sentence fact.
 - FAIL (score ≤ 2): Complex query (e.g., "summarize all answers") receives a one-line non-answer.
 
-### Session Scoring for Dimension 10.5
+### Session Scoring for Dimension 12.5
 
 Score each turn on all applicable sub-checks, then derive a session score:
 
@@ -1186,20 +1410,28 @@ The final session score combines all five dimension scores into a single number 
 | 6.2  | FC Question Identification            | Binary  | HIGH                   | Misidentified question = wrong tracker and timer reset                                                                                                                                                        |
 | 6.3  | FC Out of Plan Detection Accuracy     | 3-level | HIGH                   | Wrong subtype or missing skills = improvised questions misrouted                                                                                                                                              |
 | 6.4  | FC Transcript Split Handling          | Binary  | **VETO**         | Duplicate New Question on split turn corrupts question count and timers                                                                                                                                       |
-| 7.1  | TK Message Tone & Helpfulness         | 1–5    | HIGH                   | Wrong tone = recruiter ignores or feels pressured                                                                                                                                                             |
-| 7.2  | TK Repetition & Contextualization     | 1–5    | HIGH                   | Blind repeats = recruiter tunes out                                                                                                                                                                           |
-| 7.3  | TK Session Narrative & Flow           | 1–5    | HIGH                   | Birds-eye coherence, recovery, escalation arc                                                                                                                                                                 |
-| 8.1  | DD Drift Detection Accuracy           | 1–5    | HIGH                   | Core classification signal                                                                                                                                                                                    |
-| 8.2  | DD State Machine Compliance           | 1–5    | HIGH                   | Spam = product-breaking UX                                                                                                                                                                                    |
-| 8.3  | DD Message Quality & Actionability    | 1–5    | MEDIUM                 | Recruiter clarity and actionable guidance                                                                                                                                                                     |
-| 9.1  | IA Structural Integrity               | 1–5    | **VETO**         | Duplicate/mislabeled skills = broken report                                                                                                                                                                   |
-| 9.2  | IA Score Calibration & Synthesis      | 1–5    | HIGH                   | Scores must trace to evidence                                                                                                                                                                                 |
-| 9.3  | IA Discussion Points Quality          | 1–5    | HIGH                   | Most actionable output for next interviewer                                                                                                                                                                   |
-| 10.1 | Source Grounding                      | 1–5    | **VETO**         | Covers factual grounding, fact-check compliance, question numbering, conversation history accuracy, speaker attribution, and soft skill verification. Any sub-dimension failure may mislead hiring decisions. |
-| 10.2 | Scope Enforcement                     | 1–5    | **VETO**         | Answering out-of-scope queries, responding in a non-English language, or leaking internal field names = product boundary violation.                                                                           |
-| 10.3 | Context Handling Vs Context Poisoning | 1–5    | **VETO**         | Error propagation across turns compounds hallucinations session-wide; cannot be corrected without rerunning the session.                                                                                      |
-| 10.4 | Chitchat Handling                     | 1–5    | Quality flag (no VETO) | A flat decline or dead-end response to a greeting leaves the recruiter without direction. No factual harm but degrades usability and trust.                                                                   |
-| 10.5 | Response Tone                         | 1–5    | Quality flag (no VETO) | Sycophancy, missing disclaimers, charged language, and length miscalibration degrade recruiter trust and usability without invalidating factual content.                                                      |
+| 7.1  | AE Score Accuracy                     | 1–5    | **VETO**         | Score contradicting transcript evidence corrupts follow-up routing and post-interview skill band                                                                                                               |
+| 7.2  | AE Evidence Grounding                 | 1–5    | **VETO**         | Fabricated claims in the evaluation invalidate downstream follow-up decision and analysis report                                                                                                              |
+| 7.3  | AE Answer Classification Accuracy    | 1–5    | HIGH                   | Wrong label crossing score-7 threshold (Irrelevant/Basic/Adequate vs Strong/Excellent) misroutes follow-up action                                                                                             |
+| 7.4  | AE Gap & Strength Identification      | 1–5    | MEDIUM                 | Vague or missing gaps prevent effective follow-up generation                                                                                                                                                  |
+| 8.1  | FQ Necessity Judgment                 | Binary | **VETO**         | Follow-up when score ≥ 7, or no follow-up when score < 7 = wasted slot or unresolved signal                                                                                                                  |
+| 8.2  | FQ Answer Grounding                   | 1–5    | HIGH                   | Generic follow-up not derived from the answer adds no signal                                                                                                                                                  |
+| 8.3  | FQ Chain Coherence                    | 1–5    | HIGH                   | Lateral jump misses the identified gap and wastes the follow-up slot                                                                                                                                          |
+| 8.4  | FQ Framing & Naturalness              | 1–5    | MEDIUM                 | Evaluation language or soft openers visible to the candidate degrade experience                                                                                                                               |
+| 9.1  | TK Message Tone & Helpfulness         | 1–5    | HIGH                   | Wrong tone = recruiter ignores or feels pressured                                                                                                                                                             |
+| 9.2  | TK Repetition & Contextualization     | 1–5    | HIGH                   | Blind repeats = recruiter tunes out                                                                                                                                                                           |
+| 9.3  | TK Session Narrative & Flow           | 1–5    | HIGH                   | Birds-eye coherence, recovery, escalation arc                                                                                                                                                                 |
+| 10.1 | DD Drift Detection Accuracy           | 1–5    | HIGH                   | Core classification signal                                                                                                                                                                                    |
+| 10.2 | DD State Machine Compliance           | 1–5    | HIGH                   | Spam = product-breaking UX                                                                                                                                                                                    |
+| 10.3 | DD Message Quality & Actionability    | 1–5    | MEDIUM                 | Recruiter clarity and actionable guidance                                                                                                                                                                     |
+| 11.1 | IA Structural Integrity               | 1–5    | **VETO**         | Duplicate/mislabeled skills = broken report                                                                                                                                                                   |
+| 11.2 | IA Score Calibration & Synthesis      | 1–5    | HIGH                   | Scores must trace to evidence                                                                                                                                                                                 |
+| 11.3 | IA Discussion Points Quality          | 1–5    | HIGH                   | Most actionable output for next interviewer                                                                                                                                                                   |
+| 12.1 | Source Grounding                      | 1–5    | **VETO**         | Covers factual grounding, fact-check compliance, question numbering, conversation history accuracy, speaker attribution, and soft skill verification. Any sub-dimension failure may mislead hiring decisions. |
+| 12.2 | Scope Enforcement                     | 1–5    | **VETO**         | Answering out-of-scope queries, responding in a non-English language, or leaking internal field names = product boundary violation.                                                                           |
+| 12.3 | Context Handling Vs Context Poisoning | 1–5    | **VETO**         | Error propagation across turns compounds hallucinations session-wide; cannot be corrected without rerunning the session.                                                                                      |
+| 12.4 | Chitchat Handling                     | 1–5    | Quality flag (no VETO) | A flat decline or dead-end response to a greeting leaves the recruiter without direction. No factual harm but degrades usability and trust.                                                                   |
+| 12.5 | Response Tone                         | 1–5    | Quality flag (no VETO) | Sycophancy, missing disclaimers, charged language, and length miscalibration degrade recruiter trust and usability without invalidating factual content.                                                      |
 
 **VETO** = Score 1–2 rejects stage output. Fix before re-running.
 **HIGH** = Heavily impacts usefulness. A 3 is a yellow flag for human review.

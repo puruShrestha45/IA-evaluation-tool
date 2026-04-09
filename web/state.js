@@ -7,7 +7,7 @@ export const state = {
   idx: 0,
   data: null,
   ann: {},
-  tab: 'during',
+  tab: 'jd',
   saveTimer: null,
   rubrics: {},
 };

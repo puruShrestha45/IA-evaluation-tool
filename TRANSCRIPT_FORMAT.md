@@ -1,12 +1,12 @@
-# `prcoessed_interview_transcript` — Data Format Reference
+# `processed_interview_transcript` — Data Format Reference
 
-> Note: The field name has a typo (`prcoessed`) — this is intentional and matches the database/API output exactly.
+> Note: The field name has a typo (`processed`) — this is intentional and matches the database/API output exactly.
 
 ---
 
 ## Overview
 
-`prcoessed_interview_transcript` is a **chronological flat array** that mixes two categories of entries:
+`processed_interview_transcript` is a **chronological flat array** that mixes two categories of entries:
 
 1. **Transcript entries** — raw speech from the interviewer or interviewee
 2. **System entries** — AI pipeline outputs (classification, evaluation, follow-up)
@@ -209,7 +209,7 @@ follow-up: Q3
 
 ## Top-Level Record Fields
 
-The record containing `prcoessed_interview_transcript` also provides:
+The record containing `processed_interview_transcript` also provides:
 
 | Field | Description |
 |-------|-------------|

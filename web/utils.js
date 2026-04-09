@@ -41,24 +41,26 @@ export function rubricPanel(rubricKey, annKey) {
   const r = RUBRICS[rubricKey];
   if (!r) return '';
   return `
-    <div class="rubric-panel ${r.veto ? 'veto' : ''}">
+    <div class="rubric-panel ${r.veto ? 'veto' : ''}" data-rubric-id="${rubricKey}">
       <details>
         <summary class="rubric-summary">
           <span class="rubric-summary-left">
-            ${r.veto ? '<span class="veto-badge">⚠ VETO</span>' : ''}
+            ${r.veto ? '<span class="veto-badge">⚠ VETO</span>' : '<span>📋</span>'}
             ${esc(r.label)}
           </span>
-          <span class="rubric-chevron">▶</span>
+          <span class="rubric-chevron">▼</span>
         </summary>
-        <table class="rubric-table">
-          ${Object.entries(r.scores).map(([s, desc]) => `
-            <tr class="rubric-row-${s}">
-              <td>${s}</td><td>${esc(desc)}</td>
-            </tr>`).join('')}
-        </table>
+        <div style="padding: 0 1.25rem 1rem">
+          <table class="rubric-table">
+            ${Object.entries(r.scores).map(([s, desc]) => `
+              <tr class="rubric-row-${s}">
+                <td>${s}</td><td>${esc(desc)}</td>
+              </tr>`).join('')}
+          </table>
+        </div>
       </details>
       <div class="score-row">
-        <span class="score-row-label">Score</span>
+        <span class="score-row-label">Evaluation Score</span>
         ${scoreButtons(annKey)}
       </div>
     </div>`;
@@ -66,17 +68,18 @@ export function rubricPanel(rubricKey, annKey) {
 
 export function conversationHTML(detail) {
   if (!detail) return '<p class="muted">No transcript available.</p>';
-  return detail.split('\n')
-    .map(l => l.trim()).filter(Boolean)
-    .map(line => {
-      const isR = line.startsWith('recruiter:');
-      const isC = line.startsWith('candidate:');
-      const cls = isR ? 'recruiter' : isC ? 'candidate' : 'other';
-      const speaker = isR ? 'Recruiter' : isC ? 'Candidate' : '';
-      const text = line.replace(/^(recruiter|candidate):/, '').trim();
-      return `<div class="chat-line ${cls}">
-        ${speaker ? `<span class="speaker">${speaker}</span>` : ''}
-        <span class="chat-text">${esc(text)}</span>
-      </div>`;
-    }).join('');
+  return `<div class="conversation-scroll">` + 
+    detail.split('\n')
+      .map(l => l.trim()).filter(Boolean)
+      .map(line => {
+        const isR = line.startsWith('recruiter:');
+        const isC = line.startsWith('candidate:');
+        const cls = isR ? 'recruiter' : isC ? 'candidate' : 'other';
+        const speaker = isR ? 'Recruiter' : (isC ? 'Candidate' : '');
+        const text = line.replace(/^(recruiter|candidate):/, '').trim();
+        return `<div class="chat-line ${cls}">
+          ${speaker ? `<span class="speaker">${speaker}</span>` : ''}
+          <span class="chat-text">${esc(text)}</span>
+        </div>`;
+      }).join('') + `</div>`;
 }
