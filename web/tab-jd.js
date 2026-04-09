@@ -21,12 +21,24 @@ export function renderJDTab() {
 
       <!-- Row 1: Scoring panels -->
       <div class="jd-scores-row">
-        <div class="jd-sidebar-card">
-          <div class="jd-sidebar-label">Stage 1 — Doc Classification</div>
-          <p class="jd-sidebar-q">Was the correct document identified?</p>
-          <div class="binary-buttons" data-ann-key="doc_classification.label_accuracy">
-            <button class="binary-btn ${stage1Val === 'CORRECT' ? 'selected correct' : ''}" data-value="CORRECT">✓ Correct</button>
-            <button class="binary-btn ${stage1Val === 'FAIL'    ? 'selected fail'    : ''}" data-value="FAIL">✗ Fail</button>
+        <div class="rubric-panel primary">
+          <details>
+            <summary class="rubric-summary" style="cursor:default">
+              <span class="rubric-summary-left">
+                <span>🛡️</span> Stage 1 — Doc Classification
+              </span>
+              <span class="rubric-chevron">▼</span>
+            </summary>
+            <div style="padding: .75rem 1rem; font-size: .82rem; color: var(--text-mid); line-height: 1.4;">
+              Verification of the uploaded document type and session integrity.
+            </div>
+          </details>
+          <div class="score-row">
+            <span class="score-row-label">Correct document?</span>
+            <div class="binary-buttons" data-ann-key="doc_classification.label_accuracy" style="gap:.4rem">
+              <button class="binary-btn ${stage1Val === 'CORRECT' ? 'selected correct' : ''}" data-value="CORRECT">✓ Yes</button>
+              <button class="binary-btn ${stage1Val === 'FAIL'    ? 'selected fail'    : ''}" data-value="FAIL">✗ No</button>
+            </div>
           </div>
         </div>
         ${rubricPanel('JD_FIDELITY',     'jd_parsing.fidelity')}

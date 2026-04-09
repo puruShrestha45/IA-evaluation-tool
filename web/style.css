@@ -334,18 +334,19 @@ details summary::-webkit-details-marker { display: none; }
 /* ── binary check (stage 1) ──────────────────────────────────────────────── */
 .binary-check { display: flex; flex-direction: column; gap: .75rem; }
 .binary-check label { font-size: .875rem; font-weight: 500; color: var(--text-mid); }
-.binary-buttons { display: flex; gap: .75rem; }
+.binary-buttons { display: flex; gap: .4rem; }
 .binary-btn {
-  flex: 1; padding: .6rem 1rem; border-radius: var(--radius-sm);
+  /* flex: 1;  */
+  padding: .3rem .75rem; border-radius: var(--radius-sm);
   border: 1px solid var(--border); background: white;
-  font-size: .875rem; font-weight: 600; cursor: pointer;
+  font-size: .8rem; font-weight: 600; cursor: pointer;
   transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-sm);
   color: var(--text-mid);
+  height: 28px; display: flex; align-items: center; justify-content: center;
 }
-.binary-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); box-shadow: var(--shadow); }
-.binary-btn.selected.correct { background: var(--s5-bg); border-color: var(--s5); color: var(--s5); box-shadow: 0 0 0 3px var(--s5-bg); }
-.binary-btn.selected.fail    { background: var(--s1-bg);    border-color: var(--s1);    color: var(--s1); box-shadow: 0 0 0 3px var(--s1-bg); }
+.binary-btn:hover { border-color: var(--primary); color: var(--primary); }
+.binary-btn.selected.correct { background: var(--s5-bg); border-color: var(--s5); color: var(--s5); }
+.binary-btn.selected.fail    { background: var(--s1-bg); border-color: var(--s1); color: var(--s1); }
 
 /* ── mark-remaining bulk action ──────────────────────────────────────────── */
 .mark-remaining-container {
@@ -381,6 +382,8 @@ details summary::-webkit-details-marker { display: none; }
 
 /* ── rubric panel ────────────────────────────────────────────────────────── */
 .rubric-panel {
+  display: flex;
+  flex-direction: column;
   background: white;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -389,8 +392,12 @@ details summary::-webkit-details-marker { display: none; }
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
 }
+.rubric-panel > details { flex: 1; }
 .rubric-panel:hover { border-color: var(--border-focus); }
-.rubric-panel.veto { border-color: var(--veto-border); background: var(--veto-bg); }
+.rubric-panel.veto { border-color: var(--veto-border); }
+.rubric-panel.veto > details > .rubric-summary { background: var(--veto-bg); color: #991b1b; }
+.rubric-panel.primary { border-color: #e0e7ff; }
+.rubric-panel.primary > details > .rubric-summary { background: #f5f7ff; color: var(--primary); }
 
 .rubric-summary {
   display: flex; align-items: center; justify-content: space-between;
@@ -842,7 +849,7 @@ details.ai-reasoning p { padding: .4rem .7rem .5rem; color: var(--text-muted); f
 
 .di-classif-body {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr minmax(340px, 42%);
 }
 
 .di-classif-left {
@@ -1054,8 +1061,9 @@ details.ai-reasoning p { padding: .4rem .7rem .5rem; color: var(--text-muted); f
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: .5rem .7rem;
-  font-size: .75rem;
-  font-family: monospace;
+  font-size: .8rem;
+  font-family: inherit;
+  word-break: break-word;
 }
 .progress-box ul {
   list-style: none;
@@ -1110,12 +1118,42 @@ details.ai-reasoning p { padding: .4rem .7rem .5rem; color: var(--text-muted); f
   border-left: 3px solid var(--border-focus);
 }
 .di-eval-ann {
-  margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border);
+  margin-top: .75rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--border);
 }
+
+/* 2-column grid for Stage 7 rubric panels */
+.di-eval-ann {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+  align-items: start;
+}
+/* section label spans full width */
+.di-eval-ann > .stage-section-label {
+  grid-column: 1 / -1;
+  margin-bottom: .1rem;
+}
+
 .di-followup-section {
-  margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border);
+  margin-top: .75rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--border);
 }
-.di-followup-ann { margin-top: .6rem; }
+
+.di-followup-ann {
+  margin-top: .6rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+  align-items: start;
+}
+/* necessity (veto) and section label span full width */
+.di-followup-ann > .stage-section-label,
+.di-followup-ann > .rubric-panel.veto {
+  grid-column: 1 / -1;
+}
 
 /* Shared annotation helpers */
 .di-annotate-label { font-size: .8rem; color: var(--text-mid); }
@@ -1138,6 +1176,7 @@ details.ai-reasoning p { padding: .4rem .7rem .5rem; color: var(--text-muted); f
 .jd-scores-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: stretch;
   gap: .75rem;
   flex-shrink: 0;
 }
@@ -1206,7 +1245,7 @@ details.ai-reasoning p { padding: .4rem .7rem .5rem; color: var(--text-muted); f
   min-height: 0;
 }
 
-/* Stage 1 compact binary card */
+/* Stage 1 compact binary card — base styles (display/flex set in scores-row block) */
 .jd-sidebar-card {
   background: var(--surface-solid);
   border: 1px solid var(--border);
@@ -1251,8 +1290,6 @@ details.ai-reasoning p { padding: .4rem .7rem .5rem; color: var(--text-muted); f
   padding: 1.1rem 1.25rem;
   box-shadow: var(--shadow-sm);
 }
-
-.ia-annotated-rubric { /* rubric panel slots in naturally */ }
 
 /* Full-width section (no paired rubric) */
 .ia-full-section {
