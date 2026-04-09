@@ -3,14 +3,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 import json
+from sqlalchemy import create_engine, text
 from api.rubrics_content import RUBRICS
 
-BASE_DIR = Path(__file__).parent.parent          # evaluation/
-print("BASE_DIR: ",BASE_DIR)
-DATA_DIR = BASE_DIR / "data"              # test/dataset/data/
+BASE_DIR = Path(__file__).parent.parent  # evaluation/
+print("BASE_DIR: ", BASE_DIR)
+DATA_DIR = BASE_DIR / "data"  # test/dataset/data/
 DATA_FILE = DATA_DIR / "result_v2.json"
 ANNOTATIONS_DIR = BASE_DIR / "annotations"
 ANNOTATIONS_DIR.mkdir(exist_ok=True)
+DATABASE_URL = "postgresql://admin:password123@localhost:5432/evaluation_db"
+engine = create_engine(DATABASE_URL)
+
 
 app = FastAPI(title="IA Evaluation API")
 
@@ -22,6 +26,7 @@ def get_rubrics():
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def load_all() -> list[dict]:
     with open(DATA_FILE) as f:
         return json.load(f)
@@ -31,10 +36,10 @@ def resolve_pdf(record: dict) -> Path | None:
     # Try resume_local_path relative to test/dataset/
     local = record.get("resume_local_path", "")
     if local:
-        p = BASE_DIR.parent / local   # test/dataset/ + relative path
+        p = BASE_DIR.parent / local  # test/dataset/ + relative path
         if p.exists():
             return p
-        p = Path(local)               # try as absolute
+        p = Path(local)  # try as absolute
         if p.exists():
             return p
     # Try resume_file_path relative to data/ml_eval_data/data/
@@ -47,6 +52,7 @@ def resolve_pdf(record: dict) -> Path | None:
 
 
 # ── dataset routes ─────────────────────────────────────────────────────────────
+
 
 @app.get("/api/datasets")
 def list_datasets():
@@ -91,21 +97,64 @@ def stream_pdf(idx: int):
 
 # ── annotation routes ──────────────────────────────────────────────────────────
 
+
+# @app.get("/api/annotations/{idx}")
+# def get_annotations(idx: int):
+#     f = ANNOTATIONS_DIR / f"{idx}.json"
+#     if not f.exists():
+#         return {}
+#     with open(f) as fp:
+#         return json.load(fp)
+
+
+# @app.post("/api/annotations/{idx}")
+# async def save_annotations(idx: int, request: Request):
+#     body = await request.json()
+#     f = ANNOTATIONS_DIR / f"{idx}.json"
+#     with open(f, "w") as fp:
+#         json.dump(body, fp, indent=2)
+#     return {"ok": True}
+
+
 @app.get("/api/annotations/{idx}")
-def get_annotations(idx: int):
-    f = ANNOTATIONS_DIR / f"{idx}.json"
-    if not f.exists():
-        return {}
-    with open(f) as fp:
-        return json.load(fp)
+def get_annotations(idx: int, email: str):
+    """
+    Fetch saved progress for a specific user and candidate.
+    """
+    query = text(
+        "SELECT data FROM evaluation_annotations WHERE email = :email AND dataset_idx = :idx"
+    )
+    with engine.connect() as conn:
+        result = conn.execute(query, {"email": email, "idx": idx}).fetchone()
+
+    return result[0] if result else {}
 
 
 @app.post("/api/annotations/{idx}")
 async def save_annotations(idx: int, request: Request):
+    """Save/Update the progress for a specific user."""
     body = await request.json()
-    f = ANNOTATIONS_DIR / f"{idx}.json"
-    with open(f, "w") as fp:
-        json.dump(body, fp, indent=2)
+    email = body.get("email")
+    ann_data = body.get("data")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="User email missing")
+
+    # This 'UPSERT' logic inserts new data or updates existing data if it exists
+    upsert_query = text(
+        """
+        INSERT INTO evaluation_annotations (email, dataset_idx, data, updated_at)
+        VALUES (:email, :idx, :data, NOW())
+        ON CONFLICT (email, dataset_idx) 
+        DO UPDATE SET data = EXCLUDED.data, updated_at = NOW();
+    """
+    )
+
+    with engine.begin() as conn:
+        conn.execute(
+            upsert_query, {"email": email, "idx": idx, "data": json.dumps(ann_data)}
+        )
+
     return {"ok": True}
 
 
