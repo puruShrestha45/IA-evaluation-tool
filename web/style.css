@@ -253,9 +253,40 @@ details summary::-webkit-details-marker { display: none; }
 .resume-layout {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1rem;
 }
-.resume-eval-row {
+ /* NEW DESIGN */
+.resume-eval-dynamic {
+  display: grid;
+  gap: 0.5rem;
+  /* Default 2x2 */
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+
+/* When ANY box is expanded, we switch to a 3-to-1 layout */
+.resume-eval-dynamic.has-expanded {
+  grid-template-columns: 2fr 1fr; /* Featured box gets more room */
+}
+
+/* The expanded box stays left; others stack on the right */
+.eval-box.is-expanded {
+  grid-column: 1;
+  grid-row: 1 / span 3; /* Take up the whole left side height */
+}
+
+.resume-eval-dynamic.has-expanded .eval-box:not(.is-expanded) {
+  grid-column: 2; /* Force all others to the right column */
+}
+
+.eval-box .rubric-panel {
+  margin-bottom: 0;
+}
+
+ /* NEW DESIGN */
+
+
+/* .resume-eval-row {
   display: flex;
   flex-wrap: wrap;
   gap: 1.25rem;
@@ -265,7 +296,7 @@ details summary::-webkit-details-marker { display: none; }
   flex: 1 1 320px;
   min-width: 300px;
   margin-bottom: 0;
-}
+} */
 .resume-comparison-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

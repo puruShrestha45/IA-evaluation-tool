@@ -111,6 +111,32 @@ function setupEvents() {
     }
   }, true);
 
+  document.addEventListener('toggle', (e) => {
+  // Check if the toggled element is a rubric details box
+    if (e.target.matches('.rubric-details')) {
+      const container = document.getElementById('eval-container');
+      const box = e.target.closest('.eval-box');
+      
+      if (!container || !box) return;
+
+      if (e.target.open) {
+        // 1. Close other boxes so only one is "Featured"
+        container.querySelectorAll('.rubric-details').forEach(d => {
+          if (d !== e.target) d.open = false;
+        });
+
+        // 2. Apply classes to trigger the CSS Grid reflow
+        container.classList.add('has-expanded');
+        container.querySelectorAll('.eval-box').forEach(b => b.classList.remove('is-expanded'));
+        box.classList.add('is-expanded');
+      } else {
+        // 3. Back to 2x2 if all are closed
+        container.classList.remove('has-expanded');
+        box.classList.remove('is-expanded');
+      }
+    }
+  }, true);
+
   // Dataset selector
   document.getElementById('dataset-select').addEventListener('change', e => {
     loadDataset(parseInt(e.target.value));

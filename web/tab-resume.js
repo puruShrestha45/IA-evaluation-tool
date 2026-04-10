@@ -48,11 +48,19 @@ export function renderResumeTab() {
   return `
     <div class="resume-layout">
       <!-- Evaluations at the top -->
-      <div class="resume-eval-row">
-        ${rubricPanel('RESUME_ENTITY',     'resume_parsing.entity_accuracy')}
-        ${rubricPanel('RESUME_CHRONOLOGY', 'resume_parsing.chronological_fidelity')}
-        ${rubricPanel('RESUME_QUANT',      'resume_parsing.quantitative_extraction')}
-        ${rubricPanel('RESUME_SKILLS',     'resume_parsing.skill_classification')}
+      <div class="resume-eval-dynamic" id="eval-container">
+        <div class="eval-box" id="box-entity">
+          ${rubricPanel('RESUME_ENTITY', 'resume_parsing.entity_accuracy')}
+        </div>
+        <div class="eval-box" id="box-chronology">
+          ${rubricPanel('RESUME_CHRONOLOGY', 'resume_parsing.chronological_fidelity')}
+        </div>
+        <div class="eval-box" id="box-quant">
+          ${rubricPanel('RESUME_QUANT', 'resume_parsing.quantitative_extraction')}
+        </div>
+        <div class="eval-box" id="box-skills">
+          ${rubricPanel('RESUME_SKILLS', 'resume_parsing.skill_classification')}
+        </div>
       </div>
 
       <!-- Side-by-side comparison -->

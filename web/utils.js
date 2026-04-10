@@ -42,7 +42,7 @@ export function rubricPanel(rubricKey, annKey) {
   if (!r) return '';
   return `
     <div class="rubric-panel ${r.veto ? 'veto' : ''}" data-rubric-id="${rubricKey}">
-      <details>
+      <details class="rubric-details" data-rubric-id="${rubricKey}">
         <summary class="rubric-summary">
           <span class="rubric-summary-left">
             ${r.veto ? '<span class="veto-badge">⚠ VETO</span>' : '<span>📋</span>'}
@@ -68,7 +68,7 @@ export function rubricPanel(rubricKey, annKey) {
 
 export function conversationHTML(detail) {
   if (!detail) return '<p class="muted">No transcript available.</p>';
-  return `<div class="conversation-scroll">` + 
+  return `<div class="conversation-scroll">` +
     detail.split('\n')
       .map(l => l.trim()).filter(Boolean)
       .map(line => {
