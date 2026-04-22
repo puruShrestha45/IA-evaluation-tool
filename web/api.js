@@ -51,5 +51,15 @@ export const api = {
       })
     });
     return res.json();
+  },
+
+  async resetAnnotations(idx) {
+    const email = getEmail();
+    if (!email) return { ok: false, error: 'No email' };
+
+    const res = await fetch(`/api/annotations/${idx}?email=${encodeURIComponent(email)}`, {
+      method: 'DELETE'
+    });
+    return res.json();
   }
 };

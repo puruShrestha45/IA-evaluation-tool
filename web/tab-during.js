@@ -18,7 +18,7 @@ export const EVAL_RUBRICS = ['Excellent', 'Good', 'Adequate', 'Inadequate', 'Poo
 
 export function isNewQOrEnd(e) {
   if (e.role !== 'system' || e.task !== 'classification') return false;
-  const c = e.output?.classification;
+  const c = e.output && e.output.classification;
   return c === 'New Question' || c === 'Interview End';
 }
 
@@ -84,11 +84,11 @@ export function renderDuringInterviewTab() {
         if (!correct) return false;
         const effectiveGt = correct === 'FAIL'
           ? getScore(`${ab6}.ground_truth`)
-          : (e.output?.classification || '');
+          : (e.output && e.output.classification) || '';
         if (correct === 'FAIL' && !effectiveGt) return false;
         if (effectiveGt === 'New Question') {
           if (!getScore(`${ab6}.transcript_split`) || !getScore(`${ab6}.question_id`)) return false;
-        } else if (effectiveGt?.startsWith('Out of Plan')) {
+        } else if (effectiveGt && effectiveGt.startsWith('Out of Plan')) {
           if (!getScore(`${ab6}.oop_detection`)) return false;
         }
         ci++;
@@ -121,9 +121,10 @@ export function renderDuringInterviewTab() {
   let totalClassifCount = 0;
   {
     let tempCi = 0;
-    for (const e of ordered) {
+    for (let j = 0; j < ordered.length; j++) {
+      const e = ordered[j];
       if (e.role === 'system' && e.task === 'classification') {
-        if (e.output?.classification === 'Interview End' &&
+        if (e.output && e.output.classification === 'Interview End' &&
             getScore(`flow_classification.c${tempCi}.classification`) === 'CORRECT' &&
             isAllCompleteBeforeClassif(tempCi)) {
           interviewEndCorrectCi = tempCi;
@@ -169,10 +170,10 @@ export function renderDuringInterviewTab() {
       const ab7     = `answer_eval.e${qi}`;
       const ab8     = `followup_decision.e${qi}`;
 
-      const rubricScore = rat.score ?? 0;
+      const rubricScore = rat.score !== undefined ? rat.score : 0;
       const rubricCls = rubricScore >= 9 ? 'gt-e' : rubricScore >= 7 ? 'gt-g'
                       : rubricScore >= 5 ? 'gt-a' : rubricScore >= 3 ? 'gt-i' : 'gt-p';
-      const fuOut = fuEntry?.output || {};
+      const fuOut = (fuEntry && fuEntry.output) || {};
       const shortQ = qd.question
         ? (qd.question.length > 80 ? qd.question.slice(0, 80) + '…' : qd.question) : '';
       const necessity = getScore(`${ab8}.necessity`);
@@ -252,13 +253,13 @@ export function renderDuringInterviewTab() {
 
     // ── Classification ────────────────────────────────────────────────────
     if (entry.task === 'classification') {
-      const classif = entry.output?.classification || '';
+      const classif = (entry.output && entry.output.classification) || '';
       const ci  = classifCounter++;
       const ab6 = `flow_classification.c${ci}`;
 
       const classifCorrect = getScore(`${ab6}.classification`);
-      const mqi    = entry.output?.matched_question_index ?? -1;
-      const mqText = entry.output?.matched_question || '';
+      const mqi    = (entry.output && entry.output.matched_question_index !== undefined) ? entry.output.matched_question_index : -1;
+      const mqText = (entry.output && entry.output.matched_question) || '';
       const isEnd  = classif === 'Interview End';
       const isNewQ = classif === 'New Question';
       const isOop  = classif.startsWith('Out of Plan');
@@ -267,7 +268,7 @@ export function renderDuringInterviewTab() {
       const badgeColorClass = isCont ? 'bc-cont' : isEnd ? 'bc-end' : isOop ? 'bc-oop' : 'bc-newq';
       const badgeIcon = isCont ? '🔄' : isEnd ? '🏁' : isOop ? '⚠️' : '✨';
 
-      const hist = entry.input?.conversation_history || [];
+      const hist = (entry.input && entry.input.conversation_history) || [];
       let convHtml = '';
       if (hist.length > 0) {
         convHtml += `<details class="conv-hist-details"><summary>💬 View prior context (${hist.length} messages)</summary><div class="conv-hist-body">`;
@@ -281,7 +282,7 @@ export function renderDuringInterviewTab() {
         convHtml += '</div></details>';
       }
 
-      const qInput = entry.input?.questions || {};
+      const qInput = (entry.input && entry.input.questions) || {};
       const mainQs = qInput.main_questions || [];
       const fuQs = qInput.follow_up_questions || [];
       const mainCount = mainQs.length;
@@ -299,13 +300,13 @@ export function renderDuringInterviewTab() {
       availQsHtml += `</div></details>`;
       if (mainCount === 0 && fuCount === 0) availQsHtml = `<div class="avail-qs-empty">No Available Questions</div>`;
 
-      const progressRaw = entry.input?.interview_progress_context || '';
+      const progressRaw = (entry.input && entry.input.interview_progress_context) || '';
       const progressLines = progressRaw.split('\n').map(l => l.trim()).filter(Boolean);
       let progressHtml = `<div class="progress-box"><ul>`;
       progressLines.forEach(l => { progressHtml += `<li>${esc(l)}</li>`; });
       progressHtml += `</ul></div>`;
 
-      const reasoningHtml = entry.output?.reasoning ? `
+      const reasoningHtml = (entry.output && entry.output.reasoning) ? `
         <details open class="classif-reasoning">
           <summary>Reasoning</summary>
           <p>${esc(entry.output.reasoning)}</p>
@@ -317,7 +318,7 @@ export function renderDuringInterviewTab() {
 
       const effectiveGt = classifCorrect === 'FAIL' ? getScore(`${ab6}.ground_truth`) : classif;
       const showNewQMetrics = effectiveGt === 'New Question';
-      const showOopMetrics = effectiveGt?.startsWith('Out of Plan');
+      const showOopMetrics = effectiveGt && effectiveGt.startsWith('Out of Plan');
 
       let metricHtml = '';
       if (showNewQMetrics || showOopMetrics) {
@@ -330,7 +331,7 @@ export function renderDuringInterviewTab() {
               <details class="mb-sm rubric-details" data-rubric-id="6.4">
                 <summary>View 6.4 Transcript Split Handling Rubric</summary>
                 <div class="rubric-content">
-                  ${state.rubrics['6.4']?.content || '<em>Rubric missing</em>'}
+                  ${(state.rubrics['6.4'] && state.rubrics['6.4'].content) || '<em>Rubric missing</em>'}
                 </div>
               </details>
               <label class="di-annotate-label">Transcript Split Handling (6.4)</label>
@@ -343,7 +344,7 @@ export function renderDuringInterviewTab() {
               <details class="mb-sm rubric-details" data-rubric-id="6.2">
                 <summary>View 6.2 Question Identification Rubric</summary>
                 <div class="rubric-content">
-                  ${state.rubrics['6.2']?.content || '<em>Rubric missing</em>'}
+                  ${(state.rubrics['6.2'] && state.rubrics['6.2'].content) || '<em>Rubric missing</em>'}
                 </div>
               </details>
               <label class="di-annotate-label">Question Identification (6.2)</label>
@@ -360,7 +361,7 @@ export function renderDuringInterviewTab() {
               <details class="mb-sm rubric-details" data-rubric-id="6.3">
                 <summary>View 6.3 Out of Plan Detection Rubric</summary>
                 <div class="rubric-content">
-                  ${state.rubrics['6.3']?.content || '<em>Rubric missing</em>'}
+                  ${(state.rubrics['6.3'] && state.rubrics['6.3'].content) || '<em>Rubric missing</em>'}
                 </div>
               </details>
               <label class="di-annotate-label">Out of Plan Detection (6.3)</label>
@@ -405,7 +406,7 @@ export function renderDuringInterviewTab() {
               <div class="ai-output-box">
                 <div class="ai-output-header">🤖 Agent Intelligence</div>
                 <div class="classif-extra-line"><span class="classif-extra-label">MATCHED Q</span> <span class="ai-output-value">${mqText ? esc(mqText) : '<span class="muted">—</span>'}</span></div>
-                <div class="classif-extra-line"><span class="classif-extra-label">FOLLOW-UP</span> <span class="ai-output-value">${entry.output?.is_follow_up ? '<span style="color:var(--primary);font-weight:700">Yes</span>' : 'No'}</span></div>
+                <div class="classif-extra-line"><span class="classif-extra-label">FOLLOW-UP</span> <span class="ai-output-value">${(entry.output && entry.output.is_follow_up) ? '<span style="color:var(--primary);font-weight:700">Yes</span>' : 'No'}</span></div>
               </div>
               ${metricHtml}
             </div>

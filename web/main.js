@@ -4,7 +4,7 @@
 
 import { state }                    from './state.js';
 import { api }                      from './api.js';
-import { esc, getScore, setScore }  from './utils.js';
+import { esc, getScore, setScore, TAB_RUBRICS }  from './utils.js';
 import { toggleGuide }              from './guide.js';
 import { renderJDTab }              from './tab-jd.js';
 import { renderResumeTab }          from './tab-resume.js';
@@ -12,19 +12,17 @@ import { renderQuestionsTab }       from './tab-questions.js';
 import { renderDuringInterviewTab, buildDisplayOrder } from './tab-during.js';
 import { renderAnalysisTab }                          from './tab-analysis.js';
 import { renderTimekeeperTab, renderAnswerRelevancyTab, renderAskIATab } from './tab-placeholders.js';
-
-// --- LOGIN LOGIC ELEMENTS ---
-const loginScreen = document.getElementById('login-screen');
-const loginBtn = document.getElementById('login-btn');
-const loginEmailInput = document.getElementById('login-email');
-const userDisplayEmail = document.getElementById('user-display-email');
-const logoutBtn = document.getElementById('logout-btn');
+import { RUBRICS }                  from './rubrics.js';
 
 // --- Helpers ---
 function updateIdentityUI(email) {
-  if (email) {
+  const userDisplayEmail = document.getElementById('user-display-email');
+  const logoutBtn = document.getElementById('logout-btn');
+  const resetBtn = document.getElementById('reset-evals-btn');
+  if (email && userDisplayEmail) {
     userDisplayEmail.textContent = `| 👤 ${email}`;
     if (logoutBtn) logoutBtn.style.display = 'inline-block';
+    if (resetBtn) resetBtn.style.display = 'inline-block';
   }
 }
 
@@ -54,6 +52,34 @@ function renderContent() {
   }
 
   window.scrollTo(0, scrollY);
+  updateProgress();
+}
+
+function updateProgress() {
+  let totalDone = 0;
+  let totalAll = 0;
+
+  for (const [tabId, keys] of Object.entries(TAB_RUBRICS)) {
+    const done = keys.filter(k => getScore(k)).length;
+    const all = keys.length;
+    totalDone += done;
+    totalAll += all;
+
+    const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    if (tabBtn) {
+      const label = tabBtn.textContent.split(' (')[0];
+      tabBtn.textContent = `${label} (${done}/${all})`;
+    }
+  }
+
+  const overallBar = document.getElementById('overall-progress-bar');
+  if (overallBar) {
+    const pct = totalAll > 0 ? (totalDone / totalAll) * 100 : 0;
+    overallBar.style.width = `${pct}%`;
+  }
+
+  // Also update the individual tab header count if we've rendered the current tab
+  // (though the tab renders themselves call updateProgress via renderContent usually)
 }
 
 function renderHeader() {
@@ -66,15 +92,26 @@ function renderHeader() {
 // ── Load ──────────────────────────────────────────────────────────────────
 
 async function loadDataset(idx) {
-  document.getElementById('content').innerHTML =
-    '<div class="loading"><div class="spinner"></div>Loading dataset…</div>';
+  const content = document.getElementById('content');
+  if (content) {
+    content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading dataset…</div>';
+  }
 
   state.idx  = idx;
-  state.data = await api.getDataset(idx);
-  state.ann  = await api.getAnnotations(idx) || {};
+  state.idx  = idx;
+  const fetchedData = await api.getDataset(idx).catch(e => {
+    console.error("Failed to fetch dataset:", e);
+    return {};
+  });
+  state.data = fetchedData || {};
+  const annFetched = await api.getAnnotations(idx);
+  state.ann  = (annFetched && typeof annFetched === 'object') ? annFetched : {};
 
   renderHeader();
   renderContent();
+  
+  // Force an initial save to create the database row immediately upon login/load
+  scheduleSave();
 }
 
 // ── Save ──────────────────────────────────────────────────────────────────
@@ -152,11 +189,32 @@ function setupEvents() {
   });
 
   // Logout Button
+  const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       if (confirm("Logout? Ensure your work is saved.")) {
         localStorage.removeItem('eval_user_email');
         window.location.reload();
+      }
+    });
+  }
+
+  // Reset Evals Button
+  const resetBtn = document.getElementById('reset-evals-btn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', async () => {
+      if (confirm("🚨 WARNING 🚨\n\nAre you absolutely sure you want to reset all evaluations for this candidate? All your progress will be permanently lost and reset from scratch. This action cannot be undone.\n\nType 'OK' (or click OK) to confirm.")) {
+        setSaveStatus('resetting…');
+        const res = await api.resetAnnotations(state.idx);
+        if (res.ok) {
+          state.ann = {};
+          renderContent();
+          setSaveStatus('reset ✓');
+          setTimeout(() => setSaveStatus(''), 2000);
+        } else {
+          setSaveStatus('reset failed');
+          setTimeout(() => setSaveStatus(''), 2000);
+        }
       }
     });
   }
@@ -180,7 +238,7 @@ function setupEvents() {
         if (entry.role === 'system' && entry.task === 'classification') {
           if (ci >= startCi) {
             const ab6    = `flow_classification.c${ci}`;
-            const classif = entry.output?.classification || '';
+            const classif = (entry.output && entry.output.classification) || '';
             setScore(`${ab6}.classification`, 'CORRECT');
             setScore(`${ab6}.ground_truth`, classif);
           }
@@ -189,6 +247,52 @@ function setupEvents() {
       }
       scheduleSave();
       renderContent();
+      return;
+    }
+
+    // Star rating click
+    const star = e.target.closest('.star');
+    if (star) {
+      const container = star.closest('.star-rating');
+      const rubricId = container.dataset.rubricId;
+      const annKey = container.dataset.annKey;
+      const value = parseInt(star.dataset.value);
+      const r = RUBRICS[rubricId];
+
+      setScore(annKey, value);
+      
+      // Update star UI
+      container.querySelectorAll('.star').forEach(s => {
+        s.classList.toggle('selected', parseInt(s.dataset.value) <= value);
+      });
+
+      // Update Rubric Description Highlights
+      const listEl = document.getElementById(`desc-list-${rubricId}`);
+      if (listEl) {
+        listEl.querySelectorAll('.rubric-level').forEach(lvl => {
+          lvl.classList.toggle('active', parseInt(lvl.dataset.level) === value);
+        });
+      }
+
+      // Update Dimensions (Checkboxes)
+      const dimsEl = document.getElementById(`dims-${rubricId}`);
+      if (dimsEl && r) {
+        dimsEl.style.display = 'block';
+        const titleEl = dimsEl.querySelector('.dims-title');
+        if (titleEl) titleEl.innerHTML = `${value <= 2 ? 'What went wrong?' : 'Details'} <span class="muted" style="font-size:0.65rem; font-weight:normal; text-transform:none; margin-left:4px;">(Select all that apply)</span>`;
+        
+        const dimsList = dimsEl.querySelector('.dims-list');
+        const currentDims = getScore(`${annKey}_dims`) || [];
+        dimsList.innerHTML = ((r.dimensions && r.dimensions[value]) || []).map(opt => `
+          <label class="dim-checkbox">
+            <input type="checkbox" data-ann-key="${annKey}_dims" value="${esc(opt)}" ${currentDims.includes(opt) ? 'checked' : ''}>
+            <span>${esc(opt)}</span>
+          </label>
+        `).join('');
+      }
+
+      scheduleSave();
+      updateProgress();
       return;
     }
 
@@ -235,8 +339,53 @@ function setupEvents() {
     }
   });
 
-  // Select dropdowns for ground-truth overrides
+  contentEl.addEventListener('mouseover', e => {
+    const star = e.target.closest('.star');
+    if (star) {
+      const container = star.closest('.star-rating');
+      const rubricId = container.dataset.rubricId;
+      const value = parseInt(star.dataset.value);
+      const listEl = document.getElementById(`desc-list-${rubricId}`);
+      if (listEl) {
+        listEl.querySelectorAll('.rubric-level').forEach(lvl => {
+          lvl.classList.toggle('hover', parseInt(lvl.dataset.level) === value);
+        });
+      }
+    }
+  });
+
+  contentEl.addEventListener('mouseout', e => {
+    const star = e.target.closest('.star');
+    if (star) {
+      const container = star.closest('.star-rating');
+      const rubricId = container.dataset.rubricId;
+      const listEl = document.getElementById(`desc-list-${rubricId}`);
+      if (listEl) {
+        listEl.querySelectorAll('.rubric-level').forEach(lvl => {
+          lvl.classList.remove('hover');
+        });
+      }
+    }
+  });
+
+  // Handle Dimension Checkboxes (Multi-select)
   contentEl.addEventListener('change', e => {
+    if (e.target.matches('.dim-checkbox input')) {
+      const annKey = e.target.dataset.annKey;
+      const value = e.target.value;
+      const current = getScore(annKey) || [];
+      
+      if (e.target.checked) {
+        if (!current.includes(value)) current.push(value);
+      } else {
+        const idx = current.indexOf(value);
+        if (idx > -1) current.splice(idx, 1);
+      }
+      
+      setScore(annKey, current);
+      scheduleSave();
+    }
+
     const sel = e.target.closest('select[data-ann-key]');
     if (sel) {
       setScore(sel.dataset.annKey, sel.value);
@@ -251,55 +400,60 @@ function setupEvents() {
 // ── Init ──────────────────────────────────────────────────────────────────
 
 async function init() {
+  const loginScreen = document.getElementById('login-screen');
+  const loginBtn = document.getElementById('login-btn');
+  const loginEmailInput = document.getElementById('login-email');
+
   // 1. Check if user is already logged in
   const savedEmail = localStorage.getItem('eval_user_email');
 
   if (savedEmail) {
-    // If logged in, hide screen and start app
-    loginScreen.style.display = 'none';
+    if (loginScreen) loginScreen.style.display = 'none';
     updateIdentityUI(savedEmail);
     await startApp(); 
-  } else {
-    // If not logged in, wait for the button click
+  } else if (loginBtn) {
     loginBtn.addEventListener('click', async () => {
-      const email = loginEmailInput.value.trim().toLowerCase();
+      const email = loginEmailInput ? loginEmailInput.value.trim().toLowerCase() : '';
       if (email && email.includes('@')) {
         localStorage.setItem('eval_user_email', email);
-        loginScreen.style.display = 'none';
+        if (loginScreen) loginScreen.style.display = 'none';
         updateIdentityUI(email);
-        await startApp(); // Now start the data loading
+        await startApp();
       } else {
         alert("Please enter a valid work email.");
       }
     });
 
-    //Enter key
-    loginEmailInput.addEventListener('keypress', async (e) => {
-      if (e.key === 'Enter') loginBtn.click();
-    })
+    if (loginEmailInput) {
+      loginEmailInput.addEventListener('keypress', async (e) => {
+        if (e.key === 'Enter') loginBtn.click();
+      });
+    }
   }
 }
 
 async function startApp() {
+  const content = document.getElementById('content');
   try{
-    state.rubrics = await api.getRubrics();
     state.datasets = await api.getDatasets();
+    try {
+      state.rubrics = await api.getRubrics() || {};
+    } catch (e) {}
 
     const sel = document.getElementById('dataset-select');
-    sel.innerHTML = state.datasets.map(d =>
-      `<option value="${d.index}">${esc(d.candidate_name)} — ${esc(d.job_name)}</option>`
-    ).join('');
+    if (sel) {
+      sel.innerHTML = state.datasets.map(d =>
+        `<option value="${d.index}">${esc(d.candidate_name)} — ${esc(d.job_name)}</option>`
+      ).join('');
+    }
 
     setupEvents();
     await loadDataset(0);
   } catch (err) {
     console.error("Failed to initialize app:", err);
-    document.getElementById('content').innerHTML = `
-        <div class="error-msg">
-          <h3>Connection Error</h3>
-          <p>Could not reach the server. Please check your connection and refresh.</p>
-        </div>
-      `;
+    if (content) {
+      content.innerHTML = `<div class="error-msg"><h3>Connection Error</h3><p>Could not reach the server.</p></div>`;
+    }
   }
 }
 

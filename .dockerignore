@@ -1,0 +1,10 @@
+.env
+.git
+.gitignore
+.python-version
+annotations/
+data/
+out.js
+__pycache__/
+*.pyc
+*.pyo

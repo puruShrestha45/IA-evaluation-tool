@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { state } from './state.js';
-import { esc, rubricPanel } from './utils.js';
+import { esc, rubricPanel, renderTabHeader } from './utils.js';
 
 function parsedResumeHTML(p) {
   if (!p || !Object.keys(p).length) return '<p class="muted">No parsed data available.</p>';
@@ -13,10 +13,10 @@ function parsedResumeHTML(p) {
     <div class="resume-name">${esc(p.candidateName || 'Unknown')}</div>
     ${p.candidateRole ? `<div class="resume-role">${esc(p.candidateRole)}</div>` : ''}
     <div class="resume-meta">${[p.region, p.regionFromPhoneNo ? `📞 ${p.regionFromPhoneNo}` : ''].filter(Boolean).join(' · ')}</div>
-    ${p.degree?.length ? `<div class="resume-degrees">${p.degree.map(d => `<span class="degree-tag">${esc(d)}</span>`).join('')}</div>` : ''}
+    ${(p.degree && p.degree.length) ? `<div class="resume-degrees">${p.degree.map(d => `<span class="degree-tag">${esc(d)}</span>`).join('')}</div>` : ''}
   </div>`;
 
-  if (p.workExperience?.length) {
+  if (p.workExperience && p.workExperience.length) {
     h += '<div class="resume-section"><h4>Work Experience</h4>';
     for (const exp of p.workExperience) {
       const resps = exp.responsibilities || [];
@@ -34,7 +34,7 @@ function parsedResumeHTML(p) {
     h += '</div>';
   }
 
-  if (p.technicalSkills?.length) {
+  if (p.technicalSkills && p.technicalSkills.length) {
     h += `<div class="resume-section"><h4>Technical Skills</h4>
       <div class="skills-cloud">${p.technicalSkills.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')}</div>
     </div>`;
@@ -46,40 +46,42 @@ function parsedResumeHTML(p) {
 export function renderResumeTab() {
   const d = state.data;
   return `
-    <div class="resume-layout">
-      <!-- Evaluations at the top -->
-      <div class="resume-eval-dynamic" id="eval-container">
-        <div class="eval-box" id="box-entity">
-          ${rubricPanel('RESUME_ENTITY', 'resume_parsing.entity_accuracy')}
-        </div>
-        <div class="eval-box" id="box-chronology">
-          ${rubricPanel('RESUME_CHRONOLOGY', 'resume_parsing.chronological_fidelity')}
-        </div>
-        <div class="eval-box" id="box-quant">
-          ${rubricPanel('RESUME_QUANT', 'resume_parsing.quantitative_extraction')}
-        </div>
-        <div class="eval-box" id="box-skills">
-          ${rubricPanel('RESUME_SKILLS', 'resume_parsing.skill_classification')}
-        </div>
-      </div>
+    <div class="resume-tab">
+      <div class="tab-main-layout">
 
-      <!-- Side-by-side comparison -->
-      <div class="resume-comparison-grid">
-        <div class="pdf-side">
-          ${d.pdf_url
-            ? `<div class="card">
-                 <div class="card-title">Original Resume PDF</div>
-                 <iframe src="${d.pdf_url}" class="pdf-viewer" title="Resume PDF"></iframe>
-               </div>`
-            : `<div class="no-pdf">📄 Resume PDF not available for this record.</div>`
-          }
-        </div>
-        <div class="parsed-side">
-          <div class="card">
-            <div class="card-title">AI Parsed Resume</div>
-            <div class="parsed-resume">${parsedResumeHTML(d.parsed_data)}</div>
+        <!-- Left: Main Content -->
+        <div class="jd-panel-column">
+          <div class="tab-header-label">
+            <span class="icon">&lt;/&gt;</span>
+            WHAT THE SYSTEM PRODUCED
+          </div>
+          <div class="jd-panel">
+            <div class="jd-panel-header">
+              <span>AI Parsed Resume</span>
+              ${d.pdf_url
+      ? `<a href="${d.pdf_url}" target="_blank" class="download-btn-inline">
+                     <span>📄</span> Download Original Resume
+                   </a>`
+      : '<span class="muted" style="font-size:0.7rem">PDF Unavailable</span>'
+    }
+            </div>
+            <div class="jd-parsed-scroll">
+              <div class="parsed-resume">${parsedResumeHTML(d.parsed_data)}</div>
+            </div>
           </div>
         </div>
+
+        <!-- Right: Vertical Sidebar for Evaluations -->
+        <div class="scores-column">
+          ${renderTabHeader('YOUR EVALUATION', '🔍', 'resume')}
+          <div class="tab-side-scores">
+            ${rubricPanel('RESUME_CHRONOLOGY', 'resume_parsing.chronological_fidelity')}
+            ${rubricPanel('RESUME_CONTAINS', 'resume_parsing.informative_extraction')}
+            ${rubricPanel('RESUME_IDENTITY', 'resume_parsing.identity_accuracy')}
+            ${rubricPanel('RESUME_COMPLETENESS', 'resume_parsing.completeness')}
+          </div>
+        </div>
+
       </div>
     </div>`;
 }

@@ -21,6 +21,25 @@ engine = create_engine(DATABASE_URL)
 app = FastAPI(title="IA Evaluation API")
 
 
+@app.on_event("startup")
+def startup_event():
+    create_table_query = text("""
+        CREATE TABLE IF NOT EXISTS evaluation_annotations (
+            email VARCHAR(255) NOT NULL,
+            dataset_idx INTEGER NOT NULL,
+            data TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (email, dataset_idx)
+        );
+    """)
+    try:
+        with engine.begin() as conn:
+            conn.execute(create_table_query)
+        print("Database initialized: evaluation_annotations table ready.")
+    except Exception as e:
+        print(f"Failed to initialize database table: {e}")
+
+
 @app.middleware("http")
 async def no_cache_static(request: Request, call_next):
     response = await call_next(request)
@@ -57,6 +76,16 @@ def resolve_pdf(record: dict) -> Path | None:
     rel = record.get("resume_file_path", "")
     if rel:
         p = BASE_DIR / "data" / "ml_eval_data" / "data" / rel
+        if p.exists():
+            return p
+    return None
+    
+
+def resolve_jd_pdf(record: dict) -> Path | None:
+    # Example logic: Look for PDF named by job_id in data/jds/
+    job_id = record.get("job_id")
+    if job_id:
+        p = BASE_DIR / "data" / "jds" / f"{job_id}.pdf"
         if p.exists():
             return p
     return None
@@ -106,6 +135,19 @@ def stream_pdf(idx: int):
     return FileResponse(str(pdf_path), media_type="application/pdf")
 
 
+@app.get("/api/datasets/{idx}/jd-pdf")
+def stream_jd_pdf(idx: int):
+    data = load_all()
+    if not (0 <= idx < len(data)):
+        raise HTTPException(404, "Dataset not found")
+    pdf_path = resolve_jd_pdf(data[idx])
+    if not pdf_path:
+        # Provide a more descriptive error to help debugging
+        job_id = data[idx].get('job_id')
+        raise HTTPException(status_code=404, detail=f"JD PDF not found for Job ID {job_id}. Looked in data/jds/{job_id}.pdf")
+    return FileResponse(str(pdf_path), media_type="application/pdf")
+
+
 # ── annotation routes ──────────────────────────────────────────────────────────
 
 
@@ -135,10 +177,19 @@ def get_annotations(idx: int, email: str):
     query = text(
         "SELECT data FROM evaluation_annotations WHERE email = :email AND dataset_idx = :idx"
     )
-    with engine.connect() as conn:
-        result = conn.execute(query, {"email": email, "idx": idx}).fetchone()
-
-    return result[0] if result else {}
+    try:
+        with engine.connect() as conn:
+            row = conn.execute(query, {"email": email, "idx": idx}).fetchone()
+        
+        if row:
+            data_raw = row[0]
+            if isinstance(data_raw, str):
+                return json.loads(data_raw)
+            return data_raw
+    except Exception as e:
+        print(f"Database error in get_annotations: {e}")
+        
+    return {}
 
 
 @app.post("/api/annotations/{idx}")
@@ -167,6 +218,21 @@ async def save_annotations(idx: int, request: Request):
         )
 
     return {"ok": True}
+
+
+@app.delete("/api/annotations/{idx}")
+def reset_annotations(idx: int, email: str):
+    """Delete the saved progress for a user and candidate."""
+    query = text(
+        "DELETE FROM evaluation_annotations WHERE email = :email AND dataset_idx = :idx"
+    )
+    try:
+        with engine.begin() as conn:
+            conn.execute(query, {"email": email, "idx": idx})
+        return {"ok": True}
+    except Exception as e:
+        print(f"Database error in reset_annotations: {e}")
+        raise HTTPException(status_code=500, detail="Could not reset evaluations")
 
 
 # ── static files (must be last) ───────────────────────────────────────────────
