@@ -59,7 +59,10 @@ def get_rubrics():
 
 def load_all() -> list[dict]:
     with open(DATA_FILE) as f:
-        return json.load(f)
+        data = json.load(f)
+    # Hardcoded allowed IDs for production deployment
+    allowed_ids = [477, 476, 480, 458, 378]
+    return [r for r in data if r.get("interview_detail_id") in allowed_ids]
 
 
 def resolve_pdf(record: dict) -> Path | None:

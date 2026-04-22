@@ -28,31 +28,31 @@ export const RUBRICS = {
     }
   },
 
-  JD_PRECISION: {
-    label: 'JD Precision (2.2)',
-    dimensionId: '2.2',
-    question: "Did the system extract clean relevant keywords? like 'Python' or 'Snowflake'",
-    reasoning: "Vague skills break resume matching. The list needs to be concrete keywords a recruiter would actually search for.",
-    veto: true,
-    scores: {
-      1: "Most items are generic phrases, not actionable keywords",
-      2: "Several vague phrases in the list — they would create false matches",
-      3: "A few vague concepts mixed in with otherwise good skills",
-      4: "One slightly vague item, the rest are clean and specific",
-      5: "Every skill is a concrete tool, language, or framework"
-    },
-    dimensions: {
-      1: ["Mostly vague phrases", "Not matchable", "Generic throughout", "Filler included"],
-      2: ["Mostly vague phrases", "Not matchable", "Generic throughout", "Filler included"],
-      3: ["Vague concepts mixed in", "Some noise present", "Hard to use as-is", "Needs filtering"],
-      4: ["One borderline item", "Mostly clean", "Minor vagueness", "Good overall"],
-      5: ["All concrete skills", "Ready for matching", "No vague phrases", "Clean keyword list"]
-    }
-  },
+  // JD_PRECISION: {
+  //   label: 'JD Precision (2.2)',
+  //   dimensionId: '2.2',
+  //   question: "Did the system extract clean relevant keywords? like 'Python' or 'Snowflake'",
+  //   reasoning: "Vague skills break resume matching. The list needs to be concrete keywords a recruiter would actually search for.",
+  //   veto: true,
+  //   scores: {
+  //     1: "Most items are generic phrases, not actionable keywords",
+  //     2: "Several vague phrases in the list — they would create false matches",
+  //     3: "A few vague concepts mixed in with otherwise good skills",
+  //     4: "One slightly vague item, the rest are clean and specific",
+  //     5: "Every skill is a concrete tool, language, or framework"
+  //   },
+  //   dimensions: {
+  //     1: ["Mostly vague phrases", "Not matchable", "Generic throughout", "Filler included"],
+  //     2: ["Mostly vague phrases", "Not matchable", "Generic throughout", "Filler included"],
+  //     3: ["Vague concepts mixed in", "Some noise present", "Hard to use as-is", "Needs filtering"],
+  //     4: ["One borderline item", "Mostly clean", "Minor vagueness", "Good overall"],
+  //     5: ["All concrete skills", "Ready for matching", "No vague phrases", "Clean keyword list"]
+  //   }
+  // },
 
   JD_COMPLETENESS: {
-    label: 'JD Completeness (2.3)',
-    dimensionId: '2.3',
+    label: 'JD Completeness (2.2)',
+    dimensionId: '2.2',
     question: "Did the system capture all key requirements from the JD without adding anything that isn't there?",
     reasoning: "A missing must-have skill or an invented requirement directly affects who gets screened in or out.",
     veto: true,

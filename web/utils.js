@@ -5,7 +5,7 @@
 import { state } from './state.js';
 
 export const TAB_RUBRICS = {
-  jd: ['jd_parsing.must_haves', 'jd_parsing.precision', 'jd_parsing.completeness'],
+  jd: ['jd_parsing.must_haves', 'jd_parsing.completeness'],
   resume: ['resume_parsing.chronological_fidelity', 'resume_parsing.informative_extraction', 'resume_parsing.identity_accuracy', 'resume_parsing.completeness'],
   questions: [],
   analysis: ['interview_analysis.structural_integrity', 'interview_analysis.score_calibration', 'interview_analysis.discussion_quality']
@@ -56,11 +56,11 @@ export function scoreStars(annKey, rubricId) {
 export function rubricPanel(rubricKey, annKey) {
   const r = RUBRICS[rubricKey];
   if (!r) return '';
-  
+
   const currentScore = getScore(annKey);
   const currentDimensions = getScore(`${annKey}_dims`) || [];
   const dimId = r.dimensionId || '';
-  
+
   return `
     <div class="rubric-panel ${r.veto ? 'veto' : ''}" data-rubric-id="${rubricKey}">
       <div class="rubric-header">
