@@ -4,3 +4,4 @@ data
 annotations/*
 .env
 docker-compose.local.yml
+*.sh
