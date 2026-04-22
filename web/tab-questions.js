@@ -40,61 +40,63 @@ export function renderQuestionsTab() {
         </div>
       </div>
 
-      <div class="tab-main-layout">
+      <div class="tab-main-layout" style="grid-template-columns: 1fr;">
         
-        <!-- Left: Questions -->
+        <!-- Questions List (Full Width) -->
         <div class="jd-panel-column">
           <div class="tab-header-label">
             <span class="icon">&lt;/&gt;</span>
-            WHAT THE SYSTEM PRODUCED
+            WHAT THE SYSTEM PRODUCED &amp; YOUR EVALUATION
           </div>
 
           <div class="questions-list">
             ${questions.map((q, i) => {
     const why = whyFlow[i] || {};
     return `
-                <div class="thread-card">
+                <div class="thread-card" style="margin-bottom: 2.5rem;">
                   <div class="thread-header">
-                    <span class="thread-num">Q${i + 1}</span>
+                    <span class="thread-num">QUESTION ${i + 1}</span>
                     ${q.label ? `<span class="thread-label">${esc(q.label)}</span>` : ''}
                   </div>
-                  <div class="thread-body" style="display: block; padding: 0.75rem 1.25rem 0 1.25rem;">
-                    <div class="question-text" style="font-size: 0.9rem; margin-bottom: 0.75rem;">${esc(q.shortened_question || q.question || '')}</div>
+                  <div class="thread-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
                     
-                    <details class="q-expansion">
-                      <summary class="q-expansion-summary">
-                        <div class="skills-assessed" style="margin-bottom: 0;">
+                    <!-- Left: Question & Context -->
+                    <div class="thread-left" style="padding: 1.5rem; border-right: 1px solid var(--border);">
+                      <div class="question-text" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.25rem; color: var(--text);">${esc(q.shortened_question || q.question || '')}</div>
+                      
+                      <div class="q-context-section">
+                        <div class="skills-assessed" style="margin-bottom: 1.25rem;">
                           ${(q.skills_to_be_assessed || []).map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')}
                         </div>
-                        <div class="expand-btn">View Context</div>
-                      </summary>
-                      
-                      <div class="q-expanded-content">
-                        ${q.expected_answer_context ? `
-                          <div class="section-label">Expected answer context</div>
-                          <p class="context-p">${esc(q.expected_answer_context)}</p>
-                        ` : ''}
-                        ${why.reasoning ? `
-                          <div class="section-label" style="margin-top: 0.75rem;">Why this question was chosen</div>
-                          <p class="context-p">${esc(why.reasoning)}</p>
-                        ` : ''}
+                        
+                        <div class="q-expanded-content-static" style="background: var(--surface-alt); padding: 1.25rem; border-radius: var(--radius-sm); border-left: 4px solid var(--primary);">
+                          ${q.expected_answer_context ? `
+                            <div class="section-label" style="font-size: 0.65rem; color: var(--primary); margin-bottom: 0.5rem; opacity: 0.8;">EXPECTED ANSWER CONTEXT</div>
+                            <p class="context-p" style="font-size: 0.9rem; color: var(--text-mid); margin-bottom: 1.25rem; line-height: 1.6;">${esc(q.expected_answer_context)}</p>
+                          ` : ''}
+                          ${why.reasoning ? `
+                            <div class="section-label" style="font-size: 0.65rem; color: var(--primary); margin-bottom: 0.5rem; opacity: 0.8;">WHY THIS QUESTION WAS CHOSEN</div>
+                            <p class="context-p" style="font-size: 0.9rem; color: var(--text-mid); line-height: 1.6;">${esc(why.reasoning)}</p>
+                          ` : ''}
+                        </div>
                       </div>
-                    </details>
+                    </div>
+
+                    <!-- Right: Evaluation Rubrics -->
+                    <div class="thread-right" style="padding: 1.5rem; background: rgba(0,0,0,0.1);">
+                      <div class="stage-section-label" style="margin-top: 0; margin-bottom: 1.25rem; font-size: 0.75rem; border-bottom: 2px solid var(--primary-border);">EVALUATION FOR Q${i + 1}</div>
+                      <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        ${rubricPanel('QUESTION_TAILORING', `question_plan.questions.${i}.tailoring`)}
+                        ${rubricPanel('QUESTION_CALIBRATION', `question_plan.questions.${i}.calibration`)}
+                        ${rubricPanel('QUESTION_TONE', `question_plan.questions.${i}.tone`)}
+                        ${rubricPanel('QUESTION_COVERAGE', `question_plan.questions.${i}.coverage`)}
+                        ${rubricPanel('QUESTION_CONFIDENTIALITY', `question_plan.questions.${i}.confidentiality`)}
+                      </div>
+                    </div>
+
                   </div>
                 </div>`;
   }).join('')}
-          </div>
-        </div>
-
-        <!-- Right: Single Evaluation Sidebar -->
-        <div class="scores-column">
-          ${renderTabHeader('YOUR EVALUATION', '🔍', 'questions')}
-          <div class="tab-side-scores">
-            ${rubricPanel('QUESTION_TAILORING', 'question_plan.tailoring')}
-            ${rubricPanel('QUESTION_CALIBRATION', 'question_plan.calibration')}
-            ${rubricPanel('QUESTION_TONE', 'question_plan.tone')}
-            ${rubricPanel('QUESTION_COVERAGE', 'question_plan.coverage')}
-            ${rubricPanel('QUESTION_CONFIDENTIALITY', 'question_plan.confidentiality')}
           </div>
         </div>
 

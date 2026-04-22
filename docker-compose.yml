@@ -12,26 +12,26 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d evaluation_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    # healthcheck:
+    #   test: ["CMD-SHELL", "pg_isready -U admin -d evaluation_db"]
+    #   interval: 5s
+    #   timeout: 5s
+    #   retries: 5
 
-  app:
-    build: .
-    container_name: eval_app
-    restart: always
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql://admin:password123@db:5432/evaluation_db
-      DATA_FILE: data/result_v2.json
-    volumes:
-      - ./data:/app/data:ro
-    depends_on:
-      db:
-        condition: service_healthy
+  # app:
+  #   build: .
+  #   container_name: eval_app
+  #   restart: always
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     DATABASE_URL: postgresql://admin:password123@db:5432/evaluation_db
+  #     DATA_FILE: data/result_v2.json
+  #   volumes:
+  #     - ./data:/app/data:ro
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
 
 volumes:
   postgres_data:

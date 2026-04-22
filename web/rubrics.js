@@ -207,15 +207,15 @@ export const RUBRICS = {
   QUESTION_TAILORING: {
     label: "Are the questions actually based on this candidate and role? (5.1)",
     dimensionId: "5.1",
-    question: "Do the questions feel specific to this candidate and this role?",
+    question: "Do the question feel specific to this candidate and this role?",
     reasoning: "Generic questions could be asked to anyone. Good questions should feel tailored.",
     veto: false,
     scores: {
       1: "Could be asked to anyone — no connection",
       2: "References the industry but doesn't connect candidate and role",
-      3: "Questions feel role-appropriate but generic",
-      4: "At least a couple of questions clearly need both docs",
-      5: "Every question connects to both the resume and the role"
+      3: "No that much. Questions feel role-appropriate but generic",
+      4: "Yes. The quesiton looks informed by at least one, resume or JD",
+      5: "Yes. The question connects to both the resume and the role"
     },
     dimensions: {
       1: ["Generic questions", "No resume link", "No role connection", "Could fit any candidate"],
@@ -229,12 +229,12 @@ export const RUBRICS = {
   QUESTION_CALIBRATION: {
     label: "Are the questions fair and calibrated right? (5.2)",
     dimensionId: "5.2",
-    question: "Are the questions fair and at the right difficulty?",
+    question: "Is the question fair and at the right difficulty?",
     reasoning: "Questions shouldn't be trap-based, too hard, too easy, or test things outside the role.",
     veto: false,
     scores: {
       1: "Tests things that aren't in the JD",
-      2: "Too easy, too hard, or too many trick questions",
+      2: "Too easy, too hard, or too many trick in the question",
       3: "Standard difficulty, doesn't really distinguish levels",
       4: "Basic path plus room for a great candidate to shine",
       5: "Range of difficulty that separates junior from senior fairly"
@@ -251,7 +251,7 @@ export const RUBRICS = {
   QUESTION_TONE: {
     label: "Do the questions sound like a real interviewer? (5.3)",
     dimensionId: "5.3",
-    question: "Do the questions sound natural — like a real interviewer would ask them?",
+    question: "Do the question sound natural — like a real interviewer would ask it?",
     reasoning: "Robotic, repetitive, or awkward phrasing hurts the candidate experience.",
     veto: false,
     scores: {
@@ -273,15 +273,15 @@ export const RUBRICS = {
   QUESTION_COVERAGE: {
     label: "Do the questions cover all the must-have skills from the JD? (5.4)",
     dimensionId: "5.4",
-    question: "Are all the most important skills from the JD represented across the questions?",
+    question: "Is the question properly informed by the most important skills from the JD?",
     reasoning: "If the interview skips a must-have skill entirely, there's no evidence to evaluate the candidate on it.",
     veto: false,
     scores: {
-      1: "The most critical skill for the role has no question at all",
-      2: "Multiple must-have skills have no question covering them",
-      3: "Main technical skills covered, but one must-have skill isn't addressed",
-      4: "All critical skills covered, one minor skill left out",
-      5: "Every must-have skill from the JD is tested by at least one question"
+      1: "No relevant skill was taken into consideration",
+      2: "It seems to ignore the must-have skills",
+      3: "Kind of. A main technical skills was others were more important",
+      4: "Yes. A relevant enough skill was covered",
+      5: "Yes. It uses must-have skills from the JD"
     },
     dimensions: {
       1: ["Must-have not tested", "Key skill missing", "Multiple coverage gaps", "Misaligned with JD"],
@@ -295,7 +295,7 @@ export const RUBRICS = {
   QUESTION_CONFIDENTIALITY: {
     label: "Were questions kept confidential when they should be? (5.5)",
     dimensionId: "5.5",
-    question: "Did the question stay professional without leaking internal info?",
+    question: "Do the question stay professional without leaking internal info?",
     reasoning: "Candidates shouldn't know the hiring manager said something, or see the scoring rubric.",
     veto: false,
     scores: {

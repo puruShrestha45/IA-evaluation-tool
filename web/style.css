@@ -484,7 +484,8 @@ details summary::-webkit-details-marker { display: none; }
   user-select: none;
 }
 
-.star.selected {
+.star.selected,
+.star.hovered {
   color: #fbbf24;
   text-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
 }
@@ -568,8 +569,8 @@ details summary::-webkit-details-marker { display: none; }
 
 .rubric-level.active {
   opacity: 1;
-  background: var(--primary-faint);
-  border-color: var(--primary-border);
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
@@ -586,8 +587,9 @@ details summary::-webkit-details-marker { display: none; }
   flex-shrink: 0;
 }
 
-.rubric-level.active .level-stars {
-  color: var(--primary);
+.rubric-level.active .level-stars,
+.rubric-level.hover .level-stars {
+  color: #fbbf24;
 }
 
 .level-desc {
@@ -595,9 +597,10 @@ details summary::-webkit-details-marker { display: none; }
   color: var(--text-mid);
 }
 
-.rubric-level.active .level-desc {
-  color: var(--text);
-  font-weight: 500;
+.rubric-level.active .level-desc,
+.rubric-level.hover .level-desc {
+  color: #fbbf24;
+  font-weight: 600;
 }
 
 /* ── old score buttons (hidden) ──────────────────────────────────────────── */

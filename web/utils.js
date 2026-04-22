@@ -7,7 +7,7 @@ import { state } from './state.js';
 export const TAB_RUBRICS = {
   jd: ['jd_parsing.must_haves', 'jd_parsing.precision', 'jd_parsing.completeness'],
   resume: ['resume_parsing.chronological_fidelity', 'resume_parsing.informative_extraction', 'resume_parsing.identity_accuracy', 'resume_parsing.completeness'],
-  questions: ['question_plan.tailoring', 'question_plan.calibration', 'question_plan.tone', 'question_plan.coverage', 'question_plan.confidentiality'],
+  questions: [],
   analysis: ['interview_analysis.structural_integrity', 'interview_analysis.score_calibration', 'interview_analysis.discussion_quality']
 };
 import { RUBRICS } from './rubrics.js';

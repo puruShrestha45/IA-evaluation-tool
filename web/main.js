@@ -60,8 +60,20 @@ function updateProgress() {
   let totalAll = 0;
 
   for (const [tabId, keys] of Object.entries(TAB_RUBRICS)) {
-    const done = keys.filter(k => getScore(k)).length;
-    const all = keys.length;
+    let done = keys.filter(k => getScore(k)).length;
+    let all = keys.length;
+
+    // Dynamically add per-question rubrics for the Questions tab
+    if (tabId === 'questions' && state.data && state.data.initial_questions && state.data.initial_questions[0]) {
+      const questions = state.data.initial_questions[0].questions || [];
+      questions.forEach((_, i) => {
+        ['tailoring', 'calibration', 'tone', 'coverage', 'confidentiality'].forEach(subKey => {
+          all++;
+          if (getScore(`question_plan.questions.${i}.${subKey}`)) done++;
+        });
+      });
+    }
+
     totalDone += done;
     totalAll += all;
 
@@ -345,6 +357,12 @@ function setupEvents() {
       const container = star.closest('.star-rating');
       const rubricId = container.dataset.rubricId;
       const value = parseInt(star.dataset.value);
+      
+      // Color all stars up to the hovered one
+      container.querySelectorAll('.star').forEach(s => {
+        s.classList.toggle('hovered', parseInt(s.dataset.value) <= value);
+      });
+
       const listEl = document.getElementById(`desc-list-${rubricId}`);
       if (listEl) {
         listEl.querySelectorAll('.rubric-level').forEach(lvl => {
@@ -359,6 +377,12 @@ function setupEvents() {
     if (star) {
       const container = star.closest('.star-rating');
       const rubricId = container.dataset.rubricId;
+      
+      // Remove hovered class from all stars
+      container.querySelectorAll('.star').forEach(s => {
+        s.classList.remove('hovered');
+      });
+
       const listEl = document.getElementById(`desc-list-${rubricId}`);
       if (listEl) {
         listEl.querySelectorAll('.rubric-level').forEach(lvl => {
