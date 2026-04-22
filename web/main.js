@@ -279,7 +279,8 @@ function setupEvents() {
       });
 
       // Update Rubric Description Highlights
-      const listEl = document.getElementById(`desc-list-${rubricId}`);
+      const panel = container.closest('.rubric-panel');
+      const listEl = panel ? panel.querySelector('.rubric-static-list') : null;
       if (listEl) {
         listEl.querySelectorAll('.rubric-level').forEach(lvl => {
           lvl.classList.toggle('active', parseInt(lvl.dataset.level) === value);
@@ -287,7 +288,7 @@ function setupEvents() {
       }
 
       // Update Dimensions (Checkboxes)
-      const dimsEl = document.getElementById(`dims-${rubricId}`);
+      const dimsEl = panel ? panel.querySelector('.dimensions-container') : null;
       if (dimsEl && r) {
         dimsEl.style.display = 'block';
         const titleEl = dimsEl.querySelector('.dims-title');
@@ -363,7 +364,8 @@ function setupEvents() {
         s.classList.toggle('hovered', parseInt(s.dataset.value) <= value);
       });
 
-      const listEl = document.getElementById(`desc-list-${rubricId}`);
+      const panel = container.closest('.rubric-panel');
+      const listEl = panel ? panel.querySelector('.rubric-static-list') : null;
       if (listEl) {
         listEl.querySelectorAll('.rubric-level').forEach(lvl => {
           lvl.classList.toggle('hover', parseInt(lvl.dataset.level) === value);
@@ -383,7 +385,8 @@ function setupEvents() {
         s.classList.remove('hovered');
       });
 
-      const listEl = document.getElementById(`desc-list-${rubricId}`);
+      const panel = container.closest('.rubric-panel');
+      const listEl = panel ? panel.querySelector('.rubric-static-list') : null;
       if (listEl) {
         listEl.querySelectorAll('.rubric-level').forEach(lvl => {
           lvl.classList.remove('hover');

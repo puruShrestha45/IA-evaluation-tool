@@ -73,7 +73,7 @@ export function rubricPanel(rubricKey, annKey) {
         <div class="rubric-left">
            ${scoreStars(annKey, rubricKey)}
            
-           <div class="dimensions-container" id="dims-${rubricKey}" style="display: ${currentScore ? 'block' : 'none'}">
+           <div class="dimensions-container" style="display: ${currentScore ? 'block' : 'none'}">
              <div class="dims-title">${currentScore <= 2 ? 'What went wrong?' : 'Details'} <span class="muted" style="font-size:0.65rem; font-weight:normal; text-transform:none; margin-left:4px;">(Select all that apply)</span></div>
              <div class="dims-list">
                ${((r.dimensions && r.dimensions[currentScore]) || []).map(opt => `
@@ -87,7 +87,7 @@ export function rubricPanel(rubricKey, annKey) {
         </div>
 
         <div class="rubric-right">
-           <div class="rubric-static-list" id="desc-list-${rubricKey}">
+           <div class="rubric-static-list">
              ${[5, 4, 3, 2, 1].map(n => `
                <div class="rubric-level ${currentScore === n ? 'active' : ''}" data-level="${n}">
                  <span class="level-stars">${n}★</span>
