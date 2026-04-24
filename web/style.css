@@ -1463,6 +1463,87 @@ details.ai-reasoning p { padding: .4rem .7rem .5rem; color: var(--text-muted); f
   margin: 0 0 .55rem;
 }
 
+/* ── JD requirements structured view ────────────────────────────────────── */
+.jd-req-view { display: flex; flex-direction: column; gap: .85rem; padding: .9rem 1.25rem; }
+
+.jd-req-header {
+  background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(99,102,241,0.04));
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius);
+  padding: .9rem 1.1rem;
+}
+
+.jd-req-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: .5rem;
+}
+
+.jd-req-badges { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+.jd-chip {
+  display: inline-flex; align-items: center;
+  padding: .18rem .6rem;
+  border-radius: var(--radius-pill);
+  font-size: .7rem; font-weight: 700;
+  border: 1px solid;
+  letter-spacing: .03em;
+}
+
+.jd-badge-seniority { background: var(--primary-light); border-color: var(--primary-border); color: var(--primary); }
+.jd-badge-yoe       { background: var(--s4-bg);         border-color: var(--s4-border);      color: var(--s4); }
+.jd-chip-must       { background: var(--primary-light); border-color: var(--primary-border); color: var(--primary); }
+.jd-chip-optional   { background: var(--surface-alt);   border-color: var(--border);         color: var(--text-muted); }
+.jd-chip-domain     { background: var(--s2-bg);         border-color: var(--s2-border);      color: var(--s2); }
+
+.jd-req-section {
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.jd-req-sec-title {
+  font-size: .65rem; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--primary);
+  padding: .45rem 1rem;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+.jd-req-sec-body { padding: .75rem 1rem; }
+
+.jd-skill-group { margin-bottom: .65rem; }
+.jd-skill-group:last-child { margin-bottom: 0; }
+
+.jd-skill-area-label {
+  font-size: .65rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--text-muted); margin-bottom: .3rem;
+}
+
+.jd-chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+
+.jd-bullet-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: .35rem;
+}
+.jd-bullet-list li {
+  font-size: .8rem; color: var(--text-mid); line-height: 1.55;
+  padding-left: 1rem; position: relative;
+}
+.jd-bullet-list li::before {
+  content: '·'; position: absolute; left: .2rem;
+  color: var(--primary); font-weight: 700; font-size: 1rem; line-height: 1.2;
+}
+
+.jd-warnings {
+  background: var(--s2-bg); border: 1px solid var(--s2-border);
+  border-radius: var(--radius-sm); padding: .55rem .85rem;
+  font-size: .78rem; color: var(--s2); font-weight: 500;
+}
+
 /* ── Interview Analysis tab ──────────────────────────────────────────────── */
 .ia-tab { display: flex; flex-direction: column; gap: 1.25rem; }
 
