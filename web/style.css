@@ -1676,6 +1676,19 @@ details.ai-reasoning p { padding: .4rem .7rem .5rem; color: var(--text-muted); f
 }
 .resume-contact-link { color: var(--primary) !important; border-color: var(--primary-border); }
 .resume-contact-link:hover { background: var(--primary-light); }
+.resume-contact-na { color: var(--s1) !important; border-color: var(--s1-border) !important; opacity: .75; }
+
+.resume-na {
+  font-size: .75rem; font-weight: 600; color: var(--s1);
+  opacity: .8; font-style: italic;
+}
+.resume-na-inline {
+  display: inline-flex; align-items: center;
+  font-size: .7rem; font-weight: 700; color: var(--s1);
+  background: var(--s1-bg); border: 1px solid var(--s1-border);
+  border-radius: var(--radius-pill); padding: .15rem .6rem;
+  opacity: .8;
+}
 
 .resume-exp-list { display: flex; flex-direction: column; gap: .85rem; }
 
