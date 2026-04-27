@@ -235,6 +235,16 @@ function setupEvents() {
   const contentEl = document.getElementById('content');
 
   contentEl.addEventListener('click', e => {
+    // Dimension tab buttons
+    const dimTab = e.target.closest('.dim-tab-btn');
+    if (dimTab) {
+      const container = dimTab.closest('.dim-tabs-container');
+      const dim = dimTab.dataset.dim;
+      container.querySelectorAll('.dim-tab-btn').forEach(b => b.classList.toggle('active', b === dimTab));
+      container.querySelectorAll('.dim-panel').forEach(p => p.classList.toggle('hidden', p.dataset.dim !== dim));
+      return;
+    }
+
     // Guide toggle buttons
     const guideBtn = e.target.closest('.guide-toggle-btn');
     if (guideBtn) { toggleGuide(guideBtn.dataset.guideToggle); return; }
@@ -302,6 +312,13 @@ function setupEvents() {
             <span>${esc(opt)}</span>
           </label>
         `).join('');
+      }
+
+      // Light up the dimension tab dot immediately
+      const dimContainer = star.closest('.dim-tabs-container');
+      if (dimContainer) {
+        const activeTab = dimContainer.querySelector('.dim-tab-btn.active');
+        if (activeTab) activeTab.querySelector('.dim-scored-dot')?.classList.add('scored');
       }
 
       scheduleSave();

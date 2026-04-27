@@ -17,7 +17,6 @@ function parsedJDCards(record) {
   const mustSkills  = skills.must_have_skills  || [];
   const optSkills   = skills.optional_skills   || [];
   const categories  = cr.must_have_categorization || [];
-  const domains     = raw.domain   || [];
   const degrees     = raw.degree   || [];
   const otherReqs   = cr.other_requirements || [];
   const warnings    = raw.warnings || [];
@@ -40,7 +39,7 @@ function parsedJDCards(record) {
     <div class="jd-req-header">
       <div class="jd-req-title">${esc(jobTitle)}</div>
       <div class="jd-req-badges">
-        ${seniority ? chip(seniority, 'jd-badge-seniority') : ''}
+        ${seniority ? chip(`Seniority: ${seniority}`, 'jd-badge-seniority') : ''}
         ${yoe       ? chip(`${esc(yoe)} yrs exp`, 'jd-badge-yoe') : ''}
       </div>
     </div>`;
@@ -73,7 +72,7 @@ function parsedJDCards(record) {
     } else {
       body = `<div class="jd-chips">${mustSkills.map(s => chip(s, 'jd-chip-must')).join('')}</div>`;
     }
-    html += section('Must-Have Skills', body);
+    html += section('Must-Have Skills (BY DOMAIN KNOWLEDGE)', body);
   }
 
   // ── Optional Skills ───────────────────────────────────────────────────────
@@ -83,10 +82,10 @@ function parsedJDCards(record) {
     );
   }
 
-  // ── Domain ────────────────────────────────────────────────────────────────
-  if (domains.length) {
-    html += section('Domain',
-      `<div class="jd-chips">${domains.map(d => chip(d, 'jd-chip-domain')).join('')}</div>`
+  // ── Other Requirements ────────────────────────────────────────────────────
+  if (otherReqs.length) {
+    html += section('Other Requirements',
+      `<ul class="jd-bullet-list">${otherReqs.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`
     );
   }
 
@@ -94,13 +93,6 @@ function parsedJDCards(record) {
   if (degrees.length) {
     html += section('Education',
       `<ul class="jd-bullet-list">${degrees.map(d => `<li>${esc(d)}</li>`).join('')}</ul>`
-    );
-  }
-
-  // ── Other Requirements ────────────────────────────────────────────────────
-  if (otherReqs.length) {
-    html += section('Other Requirements',
-      `<ul class="jd-bullet-list">${otherReqs.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`
     );
   }
 
