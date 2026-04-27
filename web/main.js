@@ -314,11 +314,33 @@ function setupEvents() {
         `).join('');
       }
 
-      // Light up the dimension tab dot immediately
+      // Update tab glyph, progress bar, and card border immediately
       const dimContainer = star.closest('.dim-tabs-container');
       if (dimContainer) {
         const activeTab = dimContainer.querySelector('.dim-tab-btn.active');
-        if (activeTab) activeTab.querySelector('.dim-scored-dot')?.classList.add('scored');
+        if (activeTab) {
+          const glyph = activeTab.querySelector('.dim-score-glyph');
+          if (glyph) {
+            glyph.textContent = '✓';
+            glyph.classList.replace('unscored', 'scored');
+          }
+        }
+
+        const threadCard = dimContainer.closest('.thread-card');
+        if (threadCard) {
+          const scoredCount = threadCard.querySelectorAll('.dim-score-glyph.scored').length;
+          const total       = threadCard.querySelectorAll('.dim-score-glyph').length;
+          const pct         = (scoredCount / total) * 100;
+
+          const progressText = threadCard.querySelector('.q-progress-text');
+          if (progressText) progressText.textContent = `${scoredCount}/${total} rated`;
+
+          const progressFill = threadCard.querySelector('.q-progress-fill');
+          if (progressFill) progressFill.style.width = `${pct}%`;
+
+          threadCard.dataset.progress = scoredCount === 0 ? 'untouched'
+            : scoredCount === total ? 'complete' : 'partial';
+        }
       }
 
       scheduleSave();

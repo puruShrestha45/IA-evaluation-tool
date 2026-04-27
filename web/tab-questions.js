@@ -59,11 +59,15 @@ export function renderQuestionsTab() {
               const why = whyFlow[i] || {};
               const annBase = `question_plan.questions.${i}`;
 
+              const scoredCount = DIMS.filter(dim => !!getScore(`${annBase}.${dim.ann}`)).length;
+              const progressState = scoredCount === 0 ? 'untouched' : scoredCount === DIMS.length ? 'complete' : 'partial';
+              const progressPct = (scoredCount / DIMS.length) * 100;
+
               const tabStrip = DIMS.map((dim, j) => {
                 const scored = !!getScore(`${annBase}.${dim.ann}`);
                 return `<button class="dim-tab-btn ${j === 0 ? 'active' : ''}" data-q="${i}" data-dim="${j}">
                   ${dim.label}
-                  <span class="dim-scored-dot ${scored ? 'scored' : ''}"></span>
+                  <span class="dim-score-glyph ${scored ? 'scored' : 'unscored'}">${scored ? '✓' : '!'}</span>
                 </button>`;
               }).join('');
 
@@ -73,10 +77,16 @@ export function renderQuestionsTab() {
                 </div>`).join('');
 
               return `
-                <div class="thread-card" style="margin-bottom: 2.5rem;">
+                <div class="thread-card" data-progress="${progressState}" style="margin-bottom: 2.5rem;">
                   <div class="thread-header">
                     <span class="thread-num">QUESTION ${i + 1}</span>
                     ${q.label ? `<span class="thread-label">${esc(q.label)}</span>` : ''}
+                    <div class="q-progress-wrap">
+                      <span class="q-progress-text">${scoredCount}/${DIMS.length} rated</span>
+                      <div class="q-progress-track">
+                        <div class="q-progress-fill" style="width: ${progressPct}%"></div>
+                      </div>
+                    </div>
                   </div>
                   <div class="thread-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
 
