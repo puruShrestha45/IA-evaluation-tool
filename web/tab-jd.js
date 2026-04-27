@@ -18,13 +18,17 @@ function parsedJDCards(record) {
   const optSkills   = skills.optional_skills   || [];
   const categories  = cr.must_have_categorization || [];
   const degrees     = raw.degree   || [];
+  const domains     = raw.domain   || [];
   const otherReqs   = cr.other_requirements || [];
   const warnings    = raw.warnings || [];
   const seniority   = cr.seniority_level || '';
   const yoe         = raw.number_of_years_of_work_experience || cr.years_of_experience || '';
   const jobTitle    = raw.job_title || '';
 
-  const chip = (label, cls) => `<span class="jd-chip ${cls}">${esc(label)}</span>`;
+  const chip      = (label, cls) => `<span class="jd-chip ${cls}">${esc(label)}</span>`;
+  const naChip    = label => `<span class="resume-na-inline">${esc(label)}: N/A</span>`;
+  const arrayOrNA = (arr, fn) =>
+    (arr && arr.length) ? fn(arr) : '<span class="resume-na">N/A</span>';
 
   const section = (title, bodyHTML) => `
     <div class="jd-req-section">
@@ -37,10 +41,10 @@ function parsedJDCards(record) {
   // ── Header ────────────────────────────────────────────────────────────────
   html += `
     <div class="jd-req-header">
-      <div class="jd-req-title">${esc(jobTitle)}</div>
+      <div class="jd-req-title">${esc(jobTitle || 'N/A')}</div>
       <div class="jd-req-badges">
-        ${seniority ? chip(`Seniority: ${seniority}`, 'jd-badge-seniority') : ''}
-        ${yoe       ? chip(`${esc(yoe)} yrs exp`, 'jd-badge-yoe') : ''}
+        ${seniority ? chip(`Seniority: ${seniority}`, 'jd-badge-seniority') : naChip('Seniority')}
+        ${yoe       ? chip(`Years of Experience: ${esc(yoe)}`, 'jd-badge-yoe') : naChip('Years of Experience')}
       </div>
     </div>`;
 
@@ -50,7 +54,7 @@ function parsedJDCards(record) {
   }
 
   // ── Must-Have Skills ──────────────────────────────────────────────────────
-  if (categories.length || mustSkills.length) {
+  {
     let body = '';
     if (categories.length) {
       const categorized = new Set(categories.flatMap(c => c.skills || []));
@@ -69,32 +73,37 @@ function parsedJDCards(record) {
             <div class="jd-chips">${leftover.map(s => chip(s, 'jd-chip-must')).join('')}</div>
           </div>`;
       }
-    } else {
+    } else if (mustSkills.length) {
       body = `<div class="jd-chips">${mustSkills.map(s => chip(s, 'jd-chip-must')).join('')}</div>`;
+    } else {
+      body = '<span class="resume-na">N/A</span>';
     }
     html += section('Must-Have Skills (BY DOMAIN KNOWLEDGE)', body);
   }
 
   // ── Optional Skills ───────────────────────────────────────────────────────
-  if (optSkills.length) {
-    html += section('Optional Skills',
-      `<div class="jd-chips">${optSkills.map(s => chip(s, 'jd-chip-optional')).join('')}</div>`
-    );
-  }
+  html += section('Optional Skills',
+    arrayOrNA(optSkills, arr =>
+      `<div class="jd-chips">${arr.map(s => chip(s, 'jd-chip-optional')).join('')}</div>`)
+  );
+
+  // ── Domain ────────────────────────────────────────────────────────────────
+  html += section('Domain',
+    arrayOrNA(domains, arr =>
+      `<div class="jd-chips">${arr.map(d => chip(d, 'jd-chip-domain')).join('')}</div>`)
+  );
 
   // ── Other Requirements ────────────────────────────────────────────────────
-  if (otherReqs.length) {
-    html += section('Other Requirements',
-      `<ul class="jd-bullet-list">${otherReqs.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`
-    );
-  }
+  html += section('Other Requirements',
+    arrayOrNA(otherReqs, arr =>
+      `<ul class="jd-bullet-list">${arr.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`)
+  );
 
   // ── Education ─────────────────────────────────────────────────────────────
-  if (degrees.length) {
-    html += section('Education',
-      `<ul class="jd-bullet-list">${degrees.map(d => `<li>${esc(d)}</li>`).join('')}</ul>`
-    );
-  }
+  html += section('Education',
+    arrayOrNA(degrees, arr =>
+      `<ul class="jd-bullet-list">${arr.map(d => `<li>${esc(d)}</li>`).join('')}</ul>`)
+  );
 
   html += '</div>';
   return html;

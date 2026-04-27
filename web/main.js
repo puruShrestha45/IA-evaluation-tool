@@ -319,17 +319,14 @@ function setupEvents() {
       if (dimContainer) {
         const activeTab = dimContainer.querySelector('.dim-tab-btn.active');
         if (activeTab) {
-          const glyph = activeTab.querySelector('.dim-score-glyph');
-          if (glyph) {
-            glyph.textContent = '✓';
-            glyph.classList.replace('unscored', 'scored');
-          }
+          const dot = activeTab.querySelector('.dim-scored-dot');
+          if (dot) dot.classList.add('scored');
         }
 
         const threadCard = dimContainer.closest('.thread-card');
         if (threadCard) {
-          const scoredCount = threadCard.querySelectorAll('.dim-score-glyph.scored').length;
-          const total       = threadCard.querySelectorAll('.dim-score-glyph').length;
+          const scoredCount = threadCard.querySelectorAll('.dim-scored-dot.scored').length;
+          const total       = threadCard.querySelectorAll('.dim-scored-dot').length;
           const pct         = (scoredCount / total) * 100;
 
           const progressText = threadCard.querySelector('.q-progress-text');

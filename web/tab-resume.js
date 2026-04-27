@@ -49,7 +49,7 @@ function parsedResumeCards(p) {
       <div class="jd-req-title">${esc(p.candidateName || 'Unknown')}</div>
       <div class="jd-req-badges">
         ${p.candidateRole
-          ? chip(p.candidateRole, 'jd-badge-seniority')
+          ? chip(`Role: ${p.candidateRole}`, 'jd-badge-seniority')
           : naChip('Role')}
         ${location
           ? `<span class="jd-chip resume-chip-location">📍 ${esc(location)}</span>`
@@ -95,7 +95,7 @@ function parsedResumeCards(p) {
             <div class="resume-exp-header-left">
               <div class="resume-exp-company">${esc(exp.company || 'N/A')}</div>
               <div class="jd-req-badges" style="margin-top:.3rem">
-                ${exp.role  ? chip(exp.role,  'jd-badge-seniority') : naChip('Role')}
+                ${exp.role  ? chip(`Role: ${exp.role}`, 'jd-badge-seniority') : naChip('Role')}
                 ${seniority ? chip(`Seniority: ${seniority}`, 'jd-badge-yoe')  : naChip('Seniority')}
                 ${domain    ? chip(`Domain: ${domain}`,    'jd-chip-domain') : naChip('Domain')}
               </div>

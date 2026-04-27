@@ -67,7 +67,7 @@ export function renderQuestionsTab() {
                 const scored = !!getScore(`${annBase}.${dim.ann}`);
                 return `<button class="dim-tab-btn ${j === 0 ? 'active' : ''}" data-q="${i}" data-dim="${j}">
                   ${dim.label}
-                  <span class="dim-score-glyph ${scored ? 'scored' : 'unscored'}">${scored ? '✓' : '!'}</span>
+                  <span class="dim-scored-dot ${scored ? 'scored' : ''}"></span>
                 </button>`;
               }).join('');
 
@@ -92,23 +92,33 @@ export function renderQuestionsTab() {
 
                     <!-- Left: Question & Context -->
                     <div class="thread-left" style="padding: 1.5rem; border-right: 1px solid var(--border);">
-                      <div class="question-text" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.25rem; color: var(--text);">${esc(q.shortened_question || q.question || '')}</div>
+                      <div class="question-text" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text);">${esc(q.shortened_question || q.question || '')}</div>
 
                       <div class="q-context-section">
-                        <div class="skills-assessed" style="margin-bottom: 1.25rem;">
-                          ${(q.skills_to_be_assessed || []).map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')}
+
+                        <div class="q-sub-box" style="border-left-color: var(--s2);">
+                          <div class="q-sub-box-label" style="color: var(--s2);">WHY THIS QUESTION WAS ASKED</div>
+                          ${why.reasoning
+                            ? `<p class="context-p">${esc(why.reasoning)}</p>`
+                            : '<p class="context-p muted" style="font-style:italic">Not provided</p>'}
                         </div>
 
-                        <div class="q-expanded-content-static" style="background: var(--surface-alt); padding: 1.25rem; border-radius: var(--radius-sm); border-left: 4px solid var(--primary);">
-                          ${q.expected_answer_context ? `
-                            <div class="section-label" style="font-size: 0.65rem; color: var(--primary); margin-bottom: 0.5rem; opacity: 0.8;">EXPECTED ANSWER CONTEXT</div>
-                            <p class="context-p" style="font-size: 0.9rem; color: var(--text-mid); margin-bottom: 1.25rem; line-height: 1.6;">${esc(q.expected_answer_context)}</p>
-                          ` : ''}
-                          ${why.reasoning ? `
-                            <div class="section-label" style="font-size: 0.65rem; color: var(--primary); margin-bottom: 0.5rem; opacity: 0.8;">WHY THIS QUESTION WAS CHOSEN</div>
-                            <p class="context-p" style="font-size: 0.9rem; color: var(--text-mid); line-height: 1.6;">${esc(why.reasoning)}</p>
-                          ` : ''}
+                        <div class="q-sub-box" style="border-left-color: var(--primary);">
+                          <div class="q-sub-box-label" style="color: var(--primary);">SKILLS / DOMAIN</div>
+                          <div class="skills-assessed">
+                            ${(q.skills_to_be_assessed || []).length
+                              ? (q.skills_to_be_assessed).map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')
+                              : '<span class="muted" style="font-size:.8rem;font-style:italic">None listed</span>'}
+                          </div>
                         </div>
+
+                        <div class="q-sub-box" style="border-left-color: var(--s4);">
+                          <div class="q-sub-box-label" style="color: var(--s4);">EXPECTED ANSWER CONTEXT</div>
+                          ${q.expected_answer_context
+                            ? `<p class="context-p">${esc(q.expected_answer_context)}</p>`
+                            : '<p class="context-p muted" style="font-style:italic">Not provided</p>'}
+                        </div>
+
                       </div>
                     </div>
 
