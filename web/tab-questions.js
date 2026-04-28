@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { state } from './state.js';
-import { esc, getScore, rubricPanel, renderTabHeader, feedbackBox } from './utils.js';
+import { esc, getScore, rubricPanel, feedbackBox } from './utils.js';
 
 const DIMS = [
   { key: 'QUESTION_RELEVANCE', ann: 'relevance', label: 'Relevance' },
@@ -23,39 +23,17 @@ export function renderQuestionsTab() {
 
   const questions = iqData.questions || [];
   const whyFlow = iqData.why_this_flow || [];
-  const coverage = iqData.skill_coverage || {};
-  const summary = iqData.why_this_flow_summary || '';
-
-  const coveredSkills = coverage.skills_covered || [];
-  const uncoveredSkills = (coverage.total_skills || []).filter(s => !coveredSkills.includes(s));
 
   return `
     <div class="questions-tab">
 
-      <div class="iq-strategy-card card" style="margin-bottom: 2rem;">
-        <div class="card-title">Interview Question Strategy</div>
-        ${summary ? `<p class="iq-summary">${esc(summary)}</p>` : ''}
-        <div class="iq-coverage">
-          ${coveredSkills.length ? `<div class="iq-coverage-row">
-            <span class="iq-coverage-label">Covered</span>
-            ${coveredSkills.map(s => `<span class="skill-tag covered">${esc(s)}</span>`).join('')}
-          </div>` : ''}
-          ${uncoveredSkills.length ? `<div class="iq-coverage-row">
-            <span class="iq-coverage-label muted">Not covered</span>
-            ${uncoveredSkills.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')}
-          </div>` : ''}
-        </div>
+<div class="tab-header-label">
+        <span class="icon">&lt;/&gt;</span>
+        WHAT THE SYSTEM PRODUCED &amp; YOUR EVALUATION
       </div>
 
-      <div class="tab-main-layout" style="grid-template-columns: 1fr;">
-        <div class="jd-panel-column">
-          <div class="tab-header-label">
-            <span class="icon">&lt;/&gt;</span>
-            WHAT THE SYSTEM PRODUCED &amp; YOUR EVALUATION
-          </div>
-
-          <div class="questions-list">
-            ${questions.map((q, i) => {
+      <div class="questions-list">
+        ${questions.map((q, i) => {
               const why = whyFlow[i] || {};
               const annBase = `question_plan.questions.${i}`;
 
@@ -77,7 +55,7 @@ export function renderQuestionsTab() {
                 </div>`).join('');
 
               return `
-                <div class="thread-card" data-progress="${progressState}" style="margin-bottom: 2.5rem;">
+                <div class="thread-card" data-progress="${progressState}" style="margin-bottom: .75rem;">
                   <div class="thread-header">
                     <span class="thread-num">QUESTION ${i + 1}</span>
                     <div class="q-progress-wrap">
@@ -125,14 +103,14 @@ export function renderQuestionsTab() {
                     <div class="thread-right dim-tabs-container">
                       <div class="dim-tab-strip">${tabStrip}</div>
                       <div class="dim-panels-body">${panels}</div>
-                      ${feedbackBox(`${annBase}.feedback`)}
                     </div>
 
                   </div>
                 </div>`;
-            }).join('')}
-          </div>
-        </div>
+        }).join('')}
       </div>
+
+      ${feedbackBox('feedback.questions')}
+
     </div>`;
 }

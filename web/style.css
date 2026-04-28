@@ -785,8 +785,6 @@ details summary::-webkit-details-marker { display: none; }
   overflow: hidden;
 }
 .tab-side-scores + .feedback-box { margin-top: 0.75rem; margin-bottom: 0; }
-.dim-tabs-container .dim-panels-body { padding-bottom: 0; }
-.dim-tabs-container .feedback-box { margin: 0 1rem 1rem; }
 
 .feedback-header {
   padding: 1.25rem;
