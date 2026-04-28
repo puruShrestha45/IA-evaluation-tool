@@ -104,10 +104,10 @@ export function renderQuestionsTab() {
                         </div>
 
                         <div class="q-sub-box" style="border-left-color: var(--primary);">
-                          <div class="q-sub-box-label" style="color: var(--primary);">SKILLS / DOMAIN</div>
+                          <div class="q-sub-box-label" style="color: var(--primary);">SKILLS AND AREAS ASSESSED</div>
                           <div class="skills-assessed">
                             ${(q.skills_to_be_assessed || []).length
-                              ? (q.skills_to_be_assessed).map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')
+                              ? (q.skills_to_be_assessed).map(s => `<span class="jd-chip jd-chip-must">${esc(s)}</span>`).join('')
                               : '<span class="muted" style="font-size:.8rem;font-style:italic">None listed</span>'}
                           </div>
                         </div>
