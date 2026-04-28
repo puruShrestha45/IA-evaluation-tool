@@ -3,14 +3,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { state } from './state.js';
-import { esc, getScore, rubricPanel, renderTabHeader } from './utils.js';
+import { esc, getScore, rubricPanel, renderTabHeader, feedbackBox } from './utils.js';
 
 const DIMS = [
-  { key: 'QUESTION_TAILORING',       ann: 'tailoring',       label: 'Tailoring'  },
-  { key: 'QUESTION_CALIBRATION',     ann: 'calibration',     label: 'Calibration'},
-  { key: 'QUESTION_TONE',            ann: 'tone',            label: 'Tone'       },
-  { key: 'QUESTION_COVERAGE',        ann: 'coverage',        label: 'Coverage'   },
-  { key: 'QUESTION_CONFIDENTIALITY', ann: 'confidentiality', label: 'Conf.'      },
+  { key: 'QUESTION_RELEVANCE', ann: 'relevance', label: 'Relevance' },
+  { key: 'QUESTION_TAILORING', ann: 'tailoring', label: 'Tailoring' },
+  { key: 'QUESTION_CLARITY',   ann: 'clarity',   label: 'Clarity'   },
+  { key: 'QUESTION_RATIONALE', ann: 'rationale', label: 'Rationale' },
+  { key: 'QUESTION_EXPECTED',  ann: 'expected',  label: 'Expected'  },
 ];
 
 export function renderQuestionsTab() {
@@ -80,7 +80,6 @@ export function renderQuestionsTab() {
                 <div class="thread-card" data-progress="${progressState}" style="margin-bottom: 2.5rem;">
                   <div class="thread-header">
                     <span class="thread-num">QUESTION ${i + 1}</span>
-                    ${q.label ? `<span class="thread-label">${esc(q.label)}</span>` : ''}
                     <div class="q-progress-wrap">
                       <span class="q-progress-text">${scoredCount}/${DIMS.length} rated</span>
                       <div class="q-progress-track">
@@ -126,6 +125,7 @@ export function renderQuestionsTab() {
                     <div class="thread-right dim-tabs-container">
                       <div class="dim-tab-strip">${tabStrip}</div>
                       <div class="dim-panels-body">${panels}</div>
+                      ${feedbackBox(`${annBase}.feedback`)}
                     </div>
 
                   </div>

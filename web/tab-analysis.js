@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { state } from './state.js';
-import { esc, rubricPanel, renderTabHeader } from './utils.js';
+import { esc, rubricPanel, renderTabHeader, feedbackBox } from './utils.js';
 
 const RATING_CLS = {
   'Excellent':  'gt-e', 'Strong': 'gt-e',
@@ -129,6 +129,7 @@ export function renderAnalysisTab() {
             ${rubricPanel('IA_CALIBRATION', 'interview_analysis.score_calibration')}
             ${rubricPanel('IA_DISCUSSION',  'interview_analysis.discussion_quality')}
           </div>
+          ${feedbackBox('feedback.analysis')}
         </div>
 
       </div>

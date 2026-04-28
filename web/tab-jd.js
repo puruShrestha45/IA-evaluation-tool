@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { state } from './state.js';
-import { esc, getScore, rubricPanel, renderTabHeader } from './utils.js';
+import { esc, getScore, rubricPanel, renderTabHeader, feedbackBox } from './utils.js';
 
 function parsedJDCards(record) {
   const raw = record.parsed_job_requirements_raw;
@@ -26,9 +26,9 @@ function parsedJDCards(record) {
   const jobTitle    = raw.job_title || '';
 
   const chip      = (label, cls) => `<span class="jd-chip ${cls}">${esc(label)}</span>`;
-  const naChip    = label => `<span class="resume-na-inline">${esc(label)}: N/A</span>`;
+  const naChip    = label => `<span class="resume-na-inline">${esc(label)}: Not Found</span>`;
   const arrayOrNA = (arr, fn) =>
-    (arr && arr.length) ? fn(arr) : '<span class="resume-na">N/A</span>';
+    (arr && arr.length) ? fn(arr) : '<span class="resume-na">Not Found</span>';
 
   const section = (title, bodyHTML) => `
     <div class="jd-req-section">
@@ -41,7 +41,7 @@ function parsedJDCards(record) {
   // ── Header ────────────────────────────────────────────────────────────────
   html += `
     <div class="jd-req-header">
-      <div class="jd-req-title">${esc(jobTitle || 'N/A')}</div>
+      <div class="jd-req-title">${esc(jobTitle || 'Not Found')}</div>
       <div class="jd-req-badges">
         ${seniority ? chip(`Seniority: ${seniority}`, 'jd-badge-seniority') : naChip('Seniority')}
         ${yoe       ? chip(`Years of Experience: ${esc(yoe)}`, 'jd-badge-yoe') : naChip('Years of Experience')}
@@ -76,7 +76,7 @@ function parsedJDCards(record) {
     } else if (mustSkills.length) {
       body = `<div class="jd-chips">${mustSkills.map(s => chip(s, 'jd-chip-must')).join('')}</div>`;
     } else {
-      body = '<span class="resume-na">N/A</span>';
+      body = '<span class="resume-na">Not Found</span>';
     }
     html += section('Must-Have Skills (BY DOMAIN KNOWLEDGE)', body);
   }
@@ -87,10 +87,10 @@ function parsedJDCards(record) {
       `<div class="jd-chips">${arr.map(s => chip(s, 'jd-chip-optional')).join('')}</div>`)
   );
 
-  // ── Domain ────────────────────────────────────────────────────────────────
-  html += section('Domain',
+  // ── Knowledge Areas ───────────────────────────────────────────────────────
+  html += section('Knowledge Areas',
     arrayOrNA(domains, arr =>
-      `<div class="jd-chips">${arr.map(d => chip(d, 'jd-chip-domain')).join('')}</div>`)
+      `<div class="jd-chips">${arr.map(d => chip(d, 'resume-chip-soft')).join('')}</div>`)
   );
 
   // ── Other Requirements ────────────────────────────────────────────────────
@@ -141,6 +141,7 @@ export function renderJDTab() {
             ${rubricPanel('JD_PRECISION',    'jd_parsing.precision')}
             ${rubricPanel('JD_COMPLETENESS', 'jd_parsing.completeness')}
           </div>
+          ${feedbackBox('feedback.jd')}
         </div>
 
       </div>

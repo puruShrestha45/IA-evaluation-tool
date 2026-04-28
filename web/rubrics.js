@@ -9,22 +9,29 @@ export const RUBRICS = {
   JD_MUST_HAVES: {
     label: 'JD Must Haves (2.1)',
     dimensionId: '2.1',
-    question: "Did the system correctly separate must-have skills from nice-to-haves?",
-    reasoning: "Marking an optional skill as required can screen out qualified candidates who just lack a nice-to-have.",
+    question: "Did the system capture all the skills, and are they in the right category?",
+    reasoning: "Missing or miscategorized skills mean candidates get screened against the wrong bar from the start.",
     veto: true,
     scores: {
-      1: "Required and optional lists are largely reversed",
-      2: "Several skills swapped — preferred treated as must-have or vice versa",
-      3: "One skill clearly misclassified, the rest correct",
-      4: "One borderline skill put in the wrong bucket",
-      5: "Every skill placed correctly — required where the JD says required, optional where it says preferred"
+      5: "All skills captured; must-haves and optional are correctly separated.",
+      4: "All skills present; a few are in the wrong category.",
+      3: "A few skills missing, or a few swapped between must-have and optional.",
+      2: "Several skills missing and the must-have vs. optional split has widespread errors.",
+      1: "The skills section is largely incomplete or the categories are entirely wrong."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
     },
     dimensions: {
-      1: ["Required and optional swapped", "Nice-to-haves as must-haves", "Must-haves as optional", "Wrong split throughout"],
-      2: ["Required and optional swapped", "Nice-to-haves as must-haves", "Must-haves as optional", "Wrong split throughout"],
-      3: ["One clear mix-up", "Preferred as required", "One required as optional", "Rest is fine"],
-      4: ["One edge case wrong", "One borderline skill", "Near-perfect split", "Mostly correct"],
-      5: ["All placements correct", "Matched JD framing", "Required list clean", "Optional list accurate"]
+      5: [],
+      4: ["Optional listed as must-have", "Must-have listed as optional", "Skill missing", "Wrong domain group"],
+      3: ["Optional listed as must-have", "Must-have listed as optional", "Skill missing", "Wrong domain group"],
+      2: ["Many skills missing", "Must-have vs. optional inverted", "Skills section mostly empty"],
+      1: ["Many skills missing", "Must-have vs. optional inverted", "Skills section mostly empty"]
     }
   },
 
@@ -53,22 +60,29 @@ export const RUBRICS = {
   JD_COMPLETENESS: {
     label: 'JD Completeness (2.2)',
     dimensionId: '2.2',
-    question: "Did the system capture all key requirements from the JD without adding anything that isn't there?",
-    reasoning: "A missing must-have skill or an invented requirement directly affects who gets screened in or out.",
+    question: "Did the system correctly capture the rest of the JD: role details, domain, other requirements, and education?",
+    reasoning: "Because inaccurate context like title, seniority or missing education requirement quietly misguide the system logic when ranking candidates.",
     veto: true,
     scores: {
-      1: 'A must-have is wrong or fabricated — not in the JD at all.',
-      2: 'A key must-have skill was missed, or a requirement was invented.',
-      3: 'Most of it right, but one requirement was missed or slightly inflated.',
-      4: 'All critical fields captured, one minor detail omitted.',
-      5: 'All key skills, seniority, experience level, domain, and degree captured — nothing added.',
+      5: "Role title, seniority, experience, domain, other requirements, and education are all complete and accurate.",
+      4: "Everything present; a few items from one section are slightly off or incomplete.",
+      3: "A few items from two or more sections are inaccurate or missing.",
+      2: "Two or more sections have significant gaps, or one section is entirely absent.",
+      1: "Most sections are absent or inaccurate; the JD context is largely lost."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
     },
     dimensions: {
-      1: ["Made up a requirement", "Missed a must-have", "Wrong experience level", "Not in the JD"],
-      2: ["Made up a requirement", "Missed a must-have", "Wrong experience level", "Not in the JD"],
-      3: ["One requirement off", "Slightly inflated", "One miss", "Mostly accurate"],
-      4: ["One minor gap", "Small omission", "Critical fields all there", "Mostly complete"],
-      5: ["Everything captured", "Nothing added", "Traceable to JD", "Complete and accurate"]
+      5: [],
+      4: ["Title or seniority inaccurate", "Years of experience inaccurate", "Education item missing", "Some Other Requirements missing"],
+      3: ["Title or seniority inaccurate", "Years of experience inaccurate", "Education item missing", "Some Other Requirements missing"],
+      2: ["Role title absent", "Education section absent", "Domain not extracted", "Other Requirements fully absent"],
+      1: ["Role title absent", "Education section absent", "Domain not extracted", "Other Requirements fully absent"]
     }
   },
 
@@ -88,91 +102,148 @@ export const RUBRICS = {
 
   // ── Stage 4 — Resume Parsing ─────────────────────────────────────────────
 
-  RESUME_CHRONOLOGY: {
-    label: 'Is the work history accurate — right roles, companies, seniority, and dates? (4.1)',
+  RESUME_PROFILE: {
+    label: "Did the system correctly capture the candidate's profile details? (4.1)",
     dimensionId: '4.1',
-    question: "Did the system correctly capture each job, including company, role, worker title, and dates?",
-    reasoning: "A wrong company or date gives the recruiter incorrect context before the interview starts.",
+    question: "Did the system correctly capture the candidate's profile details?",
+    reasoning: "The profile is the first thing a recruiter sees; a wrong role label or missing contact makes the candidate harder to route and follow up with.",
     veto: false,
     scores: {
-      1: "A role is missing, or a company is hallucinated",
-      2: "A role is tied to the wrong company, or dates are clearly wrong",
-      3: "Roles correct, but seniority not split cleanly from the title, or a gap was missed",
-      4: "All correct, one minor date formatting or abbreviation issue",
-      5: "Every role, company, seniority split, and date is accurate"
+      5: "Name, role, location, and all contact fields are complete and accurate.",
+      4: "Most fields are present but a few contact items are missing that appear in the resume.",
+      3: "Around half of the fields are inaccurate or missing across name, role, location, or contacts.",
+      2: "Several profile fields missing or inaccurate; the candidate is hard to identify.",
+      1: "Profile section largely absent or details invented that aren't in the resume."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
     },
     dimensions: {
-      1: ["Wrong company", "Role missing", "Dates out of order", "Hallucinated employer"],
-      2: ["Wrong company", "Role missing", "Dates out of order", "Hallucinated employer"],
-      3: ["Seniority not split", "Missed a gap", "Dates approximate", "Close but rough"],
-      4: ["Minor date format", "One small quirk", "Mostly accurate", "Mostly polished"],
-      5: ["All roles correct", "Seniority split right", "Dates accurate", "No gaps missed"]
+      5: [],
+      4: ["Role label inaccurate", "Location missing or wrong", "Contact field missing", "Name formatting off"],
+      3: ["Role label inaccurate", "Location missing or wrong", "Contact field missing", "Name formatting off"],
+      2: ["Name absent or wrong", "Role not extracted", "All contacts missing", "Details not in resume"],
+      1: ["Name absent or wrong", "Role not extracted", "All contacts missing", "Details not in resume"]
     }
   },
 
-  RESUME_CONTAINS: {
-    label: 'Did the system extract everything informative the resume actually contained? (4.2)',
+  RESUME_POSITIONS: {
+    label: "Did the system correctly capture the position overview for each role? (4.2)",
     dimensionId: '4.2',
-    question: "Given what this resume offers, did the system capture the useful skill details — role, recency, and proficiency level?",
-    reasoning: "A good extraction reflects what's possible from this specific resume. If the resume shows years of Kafka use at Stripe, that should come through; if it only mentions a skill in passing, only outputing that is okay.",
+    question: "Did the system correctly capture the position overview for each role?",
+    reasoning: "Role title, company name, seniority, industry, and dates are what recruiters use to evaluate career trajectory; errors here distort the candidate's story before the interview starts.",
     veto: false,
     scores: {
-      1: "Extracted skills as if from a generic template — ignored what the resume specifically offered",
-      2: "Flat list; missed most of the context the resume actually contained",
-      3: "Captured the basics but lost several details the resume clearly provided",
-      4: "Captured most informative details; missed one or two available signals (e.g., a role link or a recency cue)",
-      5: "Captured every informative detail the resume offered — role, recency, and proficiency level wherever the resume supported them"
+      5: "Every role has the correct title, company name, seniority, industry, start date, and end date.",
+      4: "All roles present but a few fields are slightly off or missing in one or two roles.",
+      3: "All roles present but several roles have a few errors across title, seniority, industry, or dates.",
+      2: "Several roles have significant field gaps or one role is entirely missing.",
+      1: "Most roles missing or position details are largely invented or wrong."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
     },
     dimensions: {
-      1: ["Flat list", "Ignored role context", "No recency captured", "Generic output"],
-      2: ["Flat list", "Ignored role context", "No recency captured", "Generic output"],
-      3: ["Lost role context", "Recency unclear", "No proficiency signal", "Basics only"],
-      4: ["Missed one role link", "Minor recency gap", "Proficiency partly shown", "Close to complete"],
-      5: ["Reflects the resume fully", "Role links captured", "Recency clear", "Proficiency signaled"]
+      5: [],
+      4: ["Error in role title or seniority", "Industry or company name wrong", "Dates often wrong"],
+      3: ["Error in role title or seniority", "Industry or company name wrong", "Dates often wrong"],
+      2: ["Role missing entirely", "Company name wrong", "Dates largely absent", "Details not in resume"],
+      1: ["Role missing entirely", "Company name wrong", "Dates largely absent", "Details not in resume"]
     }
   },
 
-  RESUME_IDENTITY: {
-    label: "Are the candidate's contact details and identity accurate? (4.3)",
-    dimensionId: "4.3",
-    question: "Did the system get the name, email, region, and profile links right?",
-    reasoning: "Wrong contact info or region breaks candidate routing and recruiter outreach.",
+  RESUME_RESPONSIBILITIES: {
+    label: "Did the system capture the responsibilities and skills for each role? (4.3)",
+    dimensionId: '4.3',
+    question: "Did the system capture the responsibilities and skills for each role?",
+    reasoning: "Responsibilities show what the candidate actually did; skills confirm the tools they used. Both are needed to generate relevant interview questions.",
     veto: false,
     scores: {
-      1: "Name or email is incorrect or hallucinated",
-      2: "One contact field is wrong — e.g., wrong region or missing email",
-      3: "All correct but region inferred from wrong source, or a URL slightly off",
-      4: "All correct, one minor formatting difference such as casing in name",
-      5: "Name, email, region (with phone inference if needed), and profile URLs all accurate"
+      5: "All responsibilities and skills captured accurately for every role.",
+      4: "Responsibilities and skills mostly complete but a few items missing or slightly off in one role.",
+      3: "A few responsibilities or skills incomplete across two or more roles.",
+      2: "Responsibilities or skills have significant gaps in several roles or one role's content is entirely absent.",
+      1: "Responsibilities and skills largely missing or content invented that isn't in the resume."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
     },
     dimensions: {
-      1: ["Wrong region", "Email missing", "Name wrong", "Contact field hallucinated"],
-      2: ["Wrong region", "Email missing", "Name wrong", "Contact field hallucinated"],
-      3: ["Region from wrong source", "URL slightly off", "Minor inference error", "Acceptable"],
-      4: ["Minor casing issue", "One small quirk", "Essentially correct", "Trivial formatting"],
-      5: ["All fields correct", "Phone region inferred", "URLs preserved", "Clean identity"]
+      5: [],
+      4: ["Responsibility missing or inaccurate", "Skill missing"],
+      3: ["Responsibility missing or inaccurate", "Skill missing"],
+      2: ["Responsibilities and skills absent", "Content not in resume", "Full role content missing"],
+      1: ["Responsibilities and skills absent", "Content not in resume", "Full role content missing"]
     }
   },
 
-  RESUME_COMPLETENESS: {
-    label: "Is the output complete — all jobs, projects, and certifications captured? (4.4)",
-    dimensionId: "4.4",
-    question: "Did the system capture everything on the resume — no section skipped?",
-    reasoning: "A missed certification or job changes the candidate's profile entirely.",
+  RESUME_SKILLS: {
+    label: "Did the system capture all skills and place them in the right category? (4.4)",
+    dimensionId: '4.4',
+    question: "Did the system capture all skills and place them in the right category?",
+    reasoning: "Missing or miscategorized skills change how the candidate is evaluated; a soft skill listed as technical shifts the whole assessment.",
     veto: false,
     scores: {
-      1: "More than one section is missing or the output is severely incomplete",
-      2: "A whole section is missing when it clearly exists on the resume",
-      3: "One full job or certification entry is missing or sparse",
-      4: "All major sections there, one minor item slightly incomplete",
-      5: "Every section present — all jobs, projects, certifications, and education"
+      5: "All technical and soft skills captured and correctly separated.",
+      4: "All skills present but a few are in the wrong category.",
+      3: "A few skills missing.",
+      2: "Several skills missing and the technical vs. soft split has widespread errors.",
+      1: "Skills section largely incomplete or categories entirely wrong."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
     },
     dimensions: {
-      1: ["Whole section missing", "Job not captured", "Certifications dropped", "Severely incomplete"],
-      2: ["Whole section missing", "Job not captured", "Certifications dropped", "Severely incomplete"],
-      3: ["One entry thin", "Section sparse", "Notable omission", "Mostly covered"],
-      4: ["One minor gap", "Mostly complete", "Small omission", "Core sections there"],
-      5: ["Every section captured", "Nothing skipped", "Full profile", "Complete extraction"]
+      5: [],
+      4: ["Soft skill listed as technical", "Technical skill listed as soft", "Technical skill missing", "Soft skill missing"],
+      3: ["Soft skill listed as technical", "Technical skill listed as soft", "Technical skill missing", "Soft skill missing"],
+      2: ["Technical skills absent", "Soft skills absent", "Technical vs. soft inverted", "Skills section mostly empty"],
+      1: ["Technical skills absent", "Soft skills absent", "Technical vs. soft inverted", "Skills section mostly empty"]
+    }
+  },
+
+  RESUME_CREDENTIALS: {
+    label: "Did the system correctly capture education, certifications, and projects? (4.5)",
+    dimensionId: '4.5',
+    question: "Did the system correctly capture education, certifications, and projects?",
+    reasoning: "Education and certifications validate credentials; projects show applied work. Missing or invented items here directly affect how the candidate's background is understood.",
+    veto: false,
+    scores: {
+      5: "Education, certifications, and projects all complete and accurate.",
+      4: "All sections present but a few items slightly off or incomplete within one section.",
+      3: "A few items missing or inaccurate across two or more sections.",
+      2: "One section has significant gaps or is entirely absent.",
+      1: "Most sections absent or content invented that isn't in the resume."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
+    },
+    dimensions: {
+      5: [],
+      4: ["Certification or education date wrong", "Certification item missing", "Education degree incomplete", "Project item missing"],
+      3: ["Certification or education date wrong", "Certification item missing", "Education degree incomplete", "Project item missing"],
+      2: ["Education section absent", "Certifications absent", "Projects absent", "Content not in resume"],
+      1: ["Education section absent", "Certifications absent", "Projects absent", "Content not in resume"]
     }
   },
 
@@ -204,113 +275,148 @@ export const RUBRICS = {
 
   // ── Stage 5 — Question Gen, Follow-Up & Scoring ──────────────────────────
 
-  QUESTION_TAILORING: {
-    label: "Are the questions actually based on this candidate and role? (5.1)",
+  QUESTION_RELEVANCE: {
+    label: "Does the question target something that actually matters for this role? (5.1)",
     dimensionId: "5.1",
-    question: "Do the question feel specific to this candidate and this role?",
-    reasoning: "Generic questions could be asked to anyone. Good questions should feel tailored.",
+    question: "Does the question target something that actually matters for this role?",
+    reasoning: "Questions should connect to the specific skills, responsibilities, and seniority level in the JD; a question that ignores what the role requires wastes the interview's limited time.",
     veto: false,
     scores: {
-      1: "Could be asked to anyone — no connection",
-      2: "References the industry but doesn't connect candidate and role",
-      3: "No that much. Questions feel role-appropriate but generic",
-      4: "Yes. The quesiton looks informed by at least one, resume or JD",
-      5: "Yes. The question connects to both the resume and the role"
+      5: "Question clearly targets a specific skill, responsibility, or seniority expectation from the JD.",
+      4: "Question is relevant but lacks explicitness to a specific skill or responsibility.",
+      3: "Question is broadly relevant to the field but doesn't target a specific JD skill, responsibility, or seniority expectation.",
+      2: "Question is tangentially related to the industry but misses the role's actual requirements or seniority level.",
+      1: "Question has no connection to the role; could be asked in any interview regardless of role or level."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
     },
     dimensions: {
-      1: ["Generic questions", "No resume link", "No role connection", "Could fit any candidate"],
-      2: ["Generic questions", "No resume link", "No role connection", "Could fit any candidate"],
-      3: ["Feels templated", "Role-fit only", "Could be anyone", "Needs more specificity"],
-      4: ["Mostly tailored", "A few are generic", "Strong overall", "Good coverage"],
-      5: ["Clearly tailored", "Uses resume details", "Targets dealbreakers", "Feels like a real plan"]
+      5: [],
+      4: ["Does not assess a specific skill", "Does not assess a specific responsibility", "Does not reflect seniority level"],
+      3: ["Does not assess a specific skill", "Does not assess a specific responsibility", "Does not reflect seniority level"],
+      2: ["No JD connection", "Generic question", "Wrong seniority level", "Assesses unrelated skill"],
+      1: ["No JD connection", "Generic question", "Wrong seniority level", "Assesses unrelated skill"]
     }
   },
 
-  QUESTION_CALIBRATION: {
-    label: "Are the questions fair and calibrated right? (5.2)",
+  QUESTION_TAILORING: {
+    label: "Does the question make good use of what this candidate's resume actually offers? (5.2)",
     dimensionId: "5.2",
-    question: "Is the question fair and at the right difficulty?",
-    reasoning: "Questions shouldn't be trap-based, too hard, too easy, or test things outside the role.",
+    question: "Does the question make good use of what this candidate's resume actually offers?",
+    reasoning: "A good question leverages the candidate's specific background to get meaningful signal; asking a 10-year database expert whether they know SQL tells us nothing. The question should be worth asking for this particular person.",
     veto: false,
     scores: {
-      1: "Tests things that aren't in the JD",
-      2: "Too easy, too hard, or too many trick in the question",
-      3: "Standard difficulty, doesn't really distinguish levels",
-      4: "Basic path plus room for a great candidate to shine",
-      5: "Range of difficulty that separates junior from senior fairly"
+      5: "Question draws on the candidate's specific experience, seniority, or background to get deep, meaningful signal.",
+      4: "Question fits but doesn't fully leverage what makes their profile distinctive.",
+      3: "Question is appropriate but ignores aspects from the profile that would make it more informative.",
+      2: "Question doesn't reflect the candidate's background; the resume was largely ignored in forming it.",
+      1: "Question is not worth asking; it either repeats something obvious or assumes something they clearly don't have."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
     },
     dimensions: {
-      1: ["Trap questions", "Too technical for role", "Outside the JD", "Gotcha style"],
-      2: ["Trap questions", "Too technical for role", "Outside the JD", "Gotcha style"],
-      3: ["All same difficulty", "Doesn't separate levels", "Feels repetitive", "Standard"],
-      4: ["Low floor, high ceiling", "Mostly fair", "One or two easy ones", "Good range"],
-      5: ["Calibrated well", "Room to shine", "Separates seniority", "Fair across levels"]
+      5: [],
+      4: ["Ignores relevant experience", "Too surface-level for this background", "Doesn't reflect seniority", "Generic for this profile"],
+      3: ["Ignores relevant experience", "Too surface-level for this background", "Doesn't reflect seniority", "Generic for this profile"],
+      2: ["Obvious given their resume", "Assumes experience not in resume", "Resume not used at all", "Not worth asking"],
+      1: ["Obvious given their resume", "Assumes experience not in resume", "Resume not used at all", "Not worth asking"]
     }
   },
 
-  QUESTION_TONE: {
-    label: "Do the questions sound like a real interviewer? (5.3)",
+  QUESTION_CLARITY: {
+    label: "Is the question clear and easy to ask in a live conversation? (5.3)",
     dimensionId: "5.3",
-    question: "Do the question sound natural — like a real interviewer would ask it?",
-    reasoning: "Robotic, repetitive, or awkward phrasing hurts the candidate experience.",
+    question: "Is the question clear and easy to ask in a live conversation?",
+    reasoning: "Technical terms are allowed but the question still needs to be a single, well-formed sentence; awkward phrasing or more context than necessary makes recruiters stumble and candidates lose the thread.",
     veto: false,
     scores: {
-      1: "Robotic, awkward, or reveals internal system talk",
-      2: "Same phrasing repeated, no flow",
-      3: "Professional but clearly AI-generated",
-      4: "Conversational, with a bit of variety",
-      5: "Sounds like a skilled human interviewer"
+      5: "Single, well-formed question; clear intent, easy to say aloud, no unnecessary complexity.",
+      4: "Clear question but with minor phrasing or grammar issues that don't affect understanding.",
+      3: "The intent is understandable but the question has an extra clause or more context than necessary.",
+      2: "Two or more questions are combined, or the structure is awkward enough that a candidate would need clarification.",
+      1: "Question is impossible to follow as asked; the structure or phrasing fully breaks communication."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
     },
     dimensions: {
-      1: ["Robotic", "Repetitive openers", "Reveals system talk", "Awkward phrasing"],
-      2: ["Robotic", "Repetitive openers", "Reveals system talk", "Awkward phrasing"],
-      3: ["Professional but flat", "Clearly AI", "Too formal", "Needs warmth"],
-      4: ["Mostly conversational", "Some variety", "Reads well", "Minor stiffness"],
-      5: ["Sounds human", "Natural flow", "Varied phrasing", "Curious, not interrogative"]
+      5: [],
+      4: ["More context than necessary", "Awkward phrasing", "Unclear intent"],
+      3: ["More context than necessary", "Awkward phrasing", "Unclear intent"],
+      2: ["Multiple questions", "Broken grammar or structure", "Impossible to follow", "Candidate would need clarification"],
+      1: ["Multiple questions", "Broken grammar or structure", "Impossible to follow", "Candidate would need clarification"]
     }
   },
 
-  QUESTION_COVERAGE: {
-    label: "Do the questions cover all the must-have skills from the JD? (5.4)",
+  QUESTION_RATIONALE: {
+    label: "Does the 'why this question was asked' explanation make sense? (5.4)",
     dimensionId: "5.4",
-    question: "Is the question properly informed by the most important skills from the JD?",
-    reasoning: "If the interview skips a must-have skill entirely, there's no evidence to evaluate the candidate on it.",
+    question: "Does the 'why this question was asked' explanation make sense for this question?",
+    reasoning: "Recruiters use this section to understand what they are trying to find out; a vague or misaligned rationale leaves them without direction during the conversation.",
     veto: false,
     scores: {
-      1: "No relevant skill was taken into consideration",
-      2: "It seems to ignore the must-have skills",
-      3: "Kind of. A main technical skills was others were more important",
-      4: "Yes. A relevant enough skill was covered",
-      5: "Yes. It uses must-have skills from the JD"
+      5: "Rationale is specific, accurate, and clearly explains why this question matters for this role and candidate.",
+      4: "Rationale is accurate but could have been explained in a simpler manner.",
+      3: "Not a good explanation; mostly restates the question without adding useful context.",
+      2: "Rationale doesn't match the question asked or references the wrong skill or responsibility.",
+      1: "Rationale is missing or actively misleading."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
     },
     dimensions: {
-      1: ["Must-have not tested", "Key skill missing", "Multiple coverage gaps", "Misaligned with JD"],
-      2: ["Must-have not tested", "Key skill missing", "Multiple coverage gaps", "Misaligned with JD"],
-      3: ["One must-have skipped", "Mostly covered", "Gap in key area", "Coverage partial"],
-      4: ["One minor skill skipped", "Core skills all there", "Strong coverage", "Minor gap only"],
-      5: ["All must-haves covered", "No coverage gaps", "Full JD alignment", "Every skill tested"]
+      5: [],
+      4: ["Hard to understand", "Restates the question", "Wrong skill referenced", "Wrong responsibility referenced"],
+      3: ["Hard to understand", "Restates the question", "Wrong skill referenced", "Wrong responsibility referenced"],
+      2: ["Rationale missing", "Contradicts the question", "References wrong role context", "Misleading rationale"],
+      1: ["Rationale missing", "Contradicts the question", "References wrong role context", "Misleading rationale"]
     }
   },
 
-  QUESTION_CONFIDENTIALITY: {
-    label: "Were questions kept confidential when they should be? (5.5)",
+  QUESTION_EXPECTED: {
+    label: "Does the expected answer context help a recruiter know what a good answer looks like? (5.5)",
     dimensionId: "5.5",
-    question: "Do the question stay professional without leaking internal info?",
-    reasoning: "Candidates shouldn't know the hiring manager said something, or see the scoring rubric.",
+    question: "Does the expected answer context help a recruiter know what a good answer looks like?",
+    reasoning: "Recruiters without deep technical knowledge rely on this section to evaluate what the candidate says; if it's vague or off, they can't tell a strong answer from a weak one.",
     veto: false,
     scores: {
-      1: "Mentions the hiring manager, transcript, or scoring to the candidate",
-      2: "Mentions the resume directly (\"I see you have…\")",
-      3: "No leakage, but hard to audit why the question was asked",
-      4: "No leakage, minor citation gap",
-      5: "Clean — only what a candidate should hear, and traceable to sources internally"
+      5: "Expected answer is specific, actionable, and gives the recruiter clear guidance on what to listen for.",
+      4: "Expected answer is useful but still too vague or missed details.",
+      3: "Expected answer is not much helpful; does not address the question directly or uses unclear phrasing.",
+      2: "Expected answer doesn't match the question or describes what a good answer looks like for the wrong role.",
+      1: "Expected answer is missing or the content is inaccurate and would mislead the recruiter."
+    },
+    dimensionLabels: {
+      5: "",
+      4: "Minor issues",
+      3: "Notable issues",
+      2: "What went wrong",
+      1: "What went wrong"
     },
     dimensions: {
-      1: ["Mentions hiring manager", "Quotes transcript", "Reveals resume read", "Shows scoring"],
-      2: ["Mentions hiring manager", "Quotes transcript", "Reveals resume read", "Shows scoring"],
-      3: ["No leaks but vague", "Hard to audit", "Missing reasoning", "Unclear source"],
-      4: ["Mostly clean", "Small citation gap", "Safe overall", "Minor issue"],
-      5: ["Clean boundaries", "Nothing leaked", "Candidate-safe", "Well-sourced"]
+      5: [],
+      4: ["Too vague", "Missing key detail", "Restates the question"],
+      3: ["Too vague", "Missing key detail", "Restates the question"],
+      2: ["Expected answer missing", "Contradicts the question", "Answer is irrelevant to the role", "Would mislead the recruiter"],
+      1: ["Expected answer missing", "Contradicts the question", "Answer is irrelevant to the role", "Would mislead the recruiter"]
     }
   },
 

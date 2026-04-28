@@ -3,21 +3,21 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { state } from './state.js';
-import { esc, rubricPanel, renderTabHeader } from './utils.js';
+import { esc, rubricPanel, renderTabHeader, feedbackBox } from './utils.js';
 
 // Returns empty string for NA sentinel values (used for conditional logic)
-const na = v => (!v || v === 'NA' || v === 'N/A') ? '' : v;
-// Returns 'N/A' string for display when value is missing/NA
-const naText = v => na(v) || 'N/A';
-// Returns 'N/A' for empty arrays, otherwise renders via fn
+const na = v => (!v || v === 'NA' || v === 'N/A' || v === 'Not Found') ? '' : v;
+// Returns 'Not Found' string for display when value is missing/NA
+const naText = v => na(v) || 'Not Found';
+// Returns 'Not Found' for empty arrays, otherwise renders via fn
 const arrayOrNA = (arr, fn) =>
-  (arr && arr.length) ? fn(arr) : '<span class="resume-na">N/A</span>';
+  (arr && arr.length) ? fn(arr) : '<span class="resume-na">Not Found</span>';
 
 function parsedResumeCards(p) {
   if (!p || !Object.keys(p).length) return '<p class="muted">No parsed data available.</p>';
 
   const chip    = (label, cls) => `<span class="jd-chip ${cls}">${esc(label)}</span>`;
-  const naChip  = label => `<span class="resume-na-inline">${esc(label)}: N/A</span>`;
+  const naChip  = label => `<span class="resume-na-inline">${esc(label)}: Not Found</span>`;
   const section = (title, bodyHTML) => `
     <div class="jd-req-section">
       <div class="jd-req-sec-title">${title}</div>
@@ -32,16 +32,16 @@ function parsedResumeCards(p) {
   const contactItems = [
     p.email?.length
       ? `<span class="resume-contact-item">✉ ${esc(p.email[0])}</span>`
-      : `<span class="resume-contact-item resume-contact-na">✉ Email: N/A</span>`,
+      : `<span class="resume-contact-item resume-contact-na">✉ Email: Not Found</span>`,
     p.phoneNo?.length
       ? `<span class="resume-contact-item">📞 ${esc(p.phoneNo[0])}</span>`
-      : `<span class="resume-contact-item resume-contact-na">📞 Phone: N/A</span>`,
+      : `<span class="resume-contact-item resume-contact-na">📞 Phone: Not Found</span>`,
     na(p.linkedinUrl)
       ? `<a href="${esc(p.linkedinUrl)}" target="_blank" class="resume-contact-item resume-contact-link">🔗 LinkedIn</a>`
-      : `<span class="resume-contact-item resume-contact-na">🔗 LinkedIn: N/A</span>`,
+      : `<span class="resume-contact-item resume-contact-na">🔗 LinkedIn: Not Found</span>`,
     na(p.githubUrl)
       ? `<a href="${esc(p.githubUrl)}" target="_blank" class="resume-contact-item resume-contact-link">🔗 GitHub</a>`
-      : `<span class="resume-contact-item resume-contact-na">🔗 GitHub: N/A</span>`,
+      : `<span class="resume-contact-item resume-contact-na">🔗 GitHub: Not Found</span>`,
   ];
 
   html += `
@@ -57,12 +57,6 @@ function parsedResumeCards(p) {
       </div>
       <div class="resume-contact-row">${contactItems.join('')}</div>
     </div>`;
-
-  // ── Education ─────────────────────────────────────────────────────────────
-  html += section('Education',
-    arrayOrNA(p.degree, arr =>
-      `<ul class="jd-bullet-list">${arr.map(d => `<li>${esc(d)}</li>`).join('')}</ul>`)
-  );
 
   // ── Technical Skills ──────────────────────────────────────────────────────
   html += section('Technical Skills',
@@ -82,34 +76,34 @@ function parsedResumeCards(p) {
     for (const exp of p.workExperience) {
       const seniority = na(exp.seniority);
       const duration  = na(exp.duration);
-      const domain    = na(exp.domain);
+      const industry  = na(exp.domain);
       const startDate = na(exp.startDate);
       const endDate   = na(exp.endDate);
       const dateStr   = startDate || endDate
-        ? `${startDate || 'N/A'} – ${endDate || 'N/A'}`
+        ? `${startDate || 'Not Found'} – ${endDate || 'Not Found'}`
         : null;
 
       expHTML += `
         <div class="resume-exp-card">
           <div class="resume-exp-header">
             <div class="resume-exp-header-left">
-              <div class="resume-exp-company">${esc(exp.company || 'N/A')}</div>
+              <div class="resume-exp-company">${esc(exp.company || 'Not Found')}</div>
               <div class="jd-req-badges" style="margin-top:.3rem">
                 ${exp.role  ? chip(`Role: ${exp.role}`, 'jd-badge-seniority') : naChip('Role')}
-                ${seniority ? chip(`Seniority: ${seniority}`, 'jd-badge-yoe')  : naChip('Seniority')}
-                ${domain    ? chip(`Domain: ${domain}`,    'jd-chip-domain') : naChip('Domain')}
+                ${seniority ? chip(`Seniority: ${seniority}`, 'jd-badge-yoe') : naChip('Seniority')}
+                ${industry  ? chip(`Industry: ${industry}`, 'jd-chip-domain') : naChip('Industry')}
               </div>
             </div>
             <div class="resume-exp-meta">
-              <span class="resume-exp-dates">${esc(dateStr || 'Dates: N/A')}</span>
-              <span class="resume-exp-duration">${esc(duration || 'Duration: N/A')}</span>
+              <span class="resume-exp-dates">${esc(dateStr || 'Dates: Not Found')}</span>
+              <span class="resume-exp-duration">${esc(duration || 'Duration: Not Found')}</span>
             </div>
           </div>
           ${exp.responsibilities?.length
             ? `<ul class="jd-bullet-list resume-exp-resps">${exp.responsibilities.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`
-            : '<p class="resume-na" style="margin:.5rem 0">Responsibilities: N/A</p>'}
+            : '<p class="resume-na" style="margin:.5rem 0">Responsibilities: Not Found</p>'}
           <div class="resume-exp-tech">
-            <div class="jd-skill-area-label">Technologies</div>
+            <div class="jd-skill-area-label">Identified Skills</div>
             ${arrayOrNA(exp.technologyUsed, arr =>
               `<div class="jd-chips">${arr.map(t => chip(t, 'jd-chip-optional')).join('')}</div>`)}
           </div>
@@ -118,7 +112,7 @@ function parsedResumeCards(p) {
     expHTML += '</div>';
     html += section('Work Experience', expHTML);
   } else {
-    html += section('Work Experience', '<span class="resume-na">N/A</span>');
+    html += section('Work Experience', '<span class="resume-na">Not Found</span>');
   }
 
   // ── Projects ──────────────────────────────────────────────────────────────
@@ -133,64 +127,45 @@ function parsedResumeCards(p) {
           ${proj.responsibilities?.length
             ? `<ul class="jd-bullet-list resume-exp-resps">${proj.responsibilities.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`
             : ''}
-          ${techs.length ? `
-            <div class="resume-exp-tech">
-              <div class="jd-skill-area-label">Technologies</div>
-              <div class="jd-chips">${techs.map(t => chip(t, 'jd-chip-optional')).join('')}</div>
-            </div>` : ''}
+          <div class="resume-exp-tech">
+            <div class="jd-skill-area-label">Identified Skills</div>
+            ${arrayOrNA(techs, arr =>
+              `<div class="jd-chips">${arr.map(t => chip(t, 'jd-chip-optional')).join('')}</div>`)}
+          </div>
         </div>`;
     }
     projHTML += '</div>';
     html += section('Projects', projHTML);
   } else {
-    html += section('Projects', '<span class="resume-na">N/A</span>');
+    html += section('Projects', '<span class="resume-na">Not Found</span>');
   }
 
-  // ── Certifications ────────────────────────────────────────────────────────
+  // ── Education & Certifications ────────────────────────────────────────────
+  const eduHTML = p.degree?.length
+    ? `<ul class="jd-bullet-list">${p.degree.map(d => `<li>${esc(d)}</li>`).join('')}</ul>`
+    : '<span class="resume-na">Not Found</span>';
+
+  let certHTML = '';
   if (p.certifications?.length) {
-    let certHTML = '<div class="resume-cert-list">';
+    certHTML = '<div class="resume-cert-list">';
     for (const cert of p.certifications) {
       certHTML += `
         <div class="resume-cert-card">
-          <div class="resume-cert-title">${esc(cert.certificateTitle || 'N/A')}</div>
+          <div class="resume-cert-title">${esc(cert.certificateTitle || 'Not Found')}</div>
           ${(cert.certificateDetails || []).map(d => `<p class="resume-cert-detail">${esc(d)}</p>`).join('')}
         </div>`;
     }
     certHTML += '</div>';
-    html += section('Certifications', certHTML);
   } else {
-    html += section('Certifications', '<span class="resume-na">N/A</span>');
+    certHTML = '<span class="resume-na">Not Found</span>';
   }
 
-  // ── Listed Skills ─────────────────────────────────────────────────────────
-  html += section('Listed Skills',
-    arrayOrNA(p.listedSkills, arr =>
-      `<div class="jd-chips">${arr.map(s => chip(s, 'jd-chip-optional')).join('')}</div>`)
-  );
-
-  // ── Skills from Work Experience ───────────────────────────────────────────
-  html += section('Skills from Work Experience',
-    arrayOrNA(p.workExperienceSkills, arr =>
-      `<div class="jd-chips">${arr.map(s => chip(s, 'jd-chip-must')).join('')}</div>`)
-  );
-
-  // ── Skills from Projects ──────────────────────────────────────────────────
-  html += section('Skills from Projects',
-    arrayOrNA(p.projectsSkills, arr =>
-      `<div class="jd-chips">${arr.map(s => chip(s, 'jd-chip-optional')).join('')}</div>`)
-  );
-
-  // ── All Roles ─────────────────────────────────────────────────────────────
-  html += section('All Roles Identified',
-    arrayOrNA(p.roles, arr =>
-      `<div class="jd-chips">${arr.map(r => chip(r, 'jd-badge-seniority')).join('')}</div>`)
-  );
-
-  // ── Industry Domains ──────────────────────────────────────────────────────
-  html += section('Industry Domains',
-    arrayOrNA(p.domains, arr =>
-      `<div class="jd-chips">${arr.map(d => chip(d, 'jd-chip-domain')).join('')}</div>`)
-  );
+  html += section('Education & Certifications', `
+    ${eduHTML}
+    <hr class="resume-section-divider">
+    <div class="jd-skill-area-label" style="margin-bottom:.5rem">Certifications</div>
+    ${certHTML}
+  `);
 
   html += '</div>';
   return html;
@@ -228,11 +203,13 @@ export function renderResumeTab() {
         <div class="scores-column">
           ${renderTabHeader('YOUR EVALUATION', '🔍', 'resume')}
           <div class="tab-side-scores">
-            ${rubricPanel('RESUME_CHRONOLOGY', 'resume_parsing.chronological_fidelity')}
-            ${rubricPanel('RESUME_CONTAINS', 'resume_parsing.informative_extraction')}
-            ${rubricPanel('RESUME_IDENTITY', 'resume_parsing.identity_accuracy')}
-            ${rubricPanel('RESUME_COMPLETENESS', 'resume_parsing.completeness')}
+            ${rubricPanel('RESUME_PROFILE',          'resume_parsing.profile')}
+            ${rubricPanel('RESUME_POSITIONS',         'resume_parsing.positions')}
+            ${rubricPanel('RESUME_RESPONSIBILITIES',  'resume_parsing.responsibilities')}
+            ${rubricPanel('RESUME_SKILLS',            'resume_parsing.skills')}
+            ${rubricPanel('RESUME_CREDENTIALS',       'resume_parsing.credentials')}
           </div>
+          ${feedbackBox('feedback.resume')}
         </div>
 
       </div>

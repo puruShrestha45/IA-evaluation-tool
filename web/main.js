@@ -67,7 +67,7 @@ function updateProgress() {
     if (tabId === 'questions' && state.data && state.data.initial_questions && state.data.initial_questions[0]) {
       const questions = state.data.initial_questions[0].questions || [];
       questions.forEach((_, i) => {
-        ['tailoring', 'calibration', 'tone', 'coverage', 'confidentiality'].forEach(subKey => {
+        ['relevance', 'tailoring', 'clarity', 'rationale', 'expected'].forEach(subKey => {
           all++;
           if (getScore(`question_plan.questions.${i}.${subKey}`)) done++;
         });
@@ -300,18 +300,21 @@ function setupEvents() {
       // Update Dimensions (Checkboxes)
       const dimsEl = panel ? panel.querySelector('.dimensions-container') : null;
       if (dimsEl && r) {
-        dimsEl.style.display = 'block';
-        const titleEl = dimsEl.querySelector('.dims-title');
-        if (titleEl) titleEl.innerHTML = `${value <= 2 ? 'What went wrong?' : 'Details'} <span class="muted" style="font-size:0.65rem; font-weight:normal; text-transform:none; margin-left:4px;">(Select all that apply)</span>`;
-        
-        const dimsList = dimsEl.querySelector('.dims-list');
-        const currentDims = getScore(`${annKey}_dims`) || [];
-        dimsList.innerHTML = ((r.dimensions && r.dimensions[value]) || []).map(opt => `
-          <label class="dim-checkbox">
-            <input type="checkbox" data-ann-key="${annKey}_dims" value="${esc(opt)}" ${currentDims.includes(opt) ? 'checked' : ''}>
-            <span>${esc(opt)}</span>
-          </label>
-        `).join('');
+        const opts = (r.dimensions && r.dimensions[value]) || [];
+        dimsEl.style.display = opts.length ? 'block' : 'none';
+        if (opts.length) {
+          const dimLabel = (r.dimensionLabels && r.dimensionLabels[value]) || (value <= 2 ? 'What went wrong?' : 'Details');
+          const titleEl = dimsEl.querySelector('.dims-title');
+          if (titleEl) titleEl.innerHTML = `${esc(dimLabel)} <span class="muted" style="font-size:0.65rem; font-weight:normal; text-transform:none; margin-left:4px;">(Select all that apply)</span>`;
+          const dimsList = dimsEl.querySelector('.dims-list');
+          const currentDims = getScore(`${annKey}_dims`) || [];
+          dimsList.innerHTML = opts.map(opt => `
+            <label class="dim-checkbox">
+              <input type="checkbox" data-ann-key="${annKey}_dims" value="${esc(opt)}" ${currentDims.includes(opt) ? 'checked' : ''}>
+              <span>${esc(opt)}</span>
+            </label>
+          `).join('');
+        }
       }
 
       // Update tab glyph, progress bar, and card border immediately
@@ -456,6 +459,12 @@ function setupEvents() {
       if (sel.dataset.annKey.endsWith('.ground_truth')) {
         renderContent();
       }
+    }
+
+    const textarea = e.target.closest('textarea[data-ann-key]');
+    if (textarea) {
+      setScore(textarea.dataset.annKey, textarea.value);
+      scheduleSave();
     }
   });
 }

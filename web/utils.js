@@ -6,7 +6,7 @@ import { state } from './state.js';
 
 export const TAB_RUBRICS = {
   jd: ['jd_parsing.must_haves', 'jd_parsing.completeness'],
-  resume: ['resume_parsing.chronological_fidelity', 'resume_parsing.informative_extraction', 'resume_parsing.identity_accuracy', 'resume_parsing.completeness'],
+  resume: ['resume_parsing.profile', 'resume_parsing.positions', 'resume_parsing.responsibilities', 'resume_parsing.skills', 'resume_parsing.credentials'],
   questions: [],
   analysis: ['interview_analysis.structural_integrity', 'interview_analysis.score_calibration', 'interview_analysis.discussion_quality']
 };
@@ -60,6 +60,11 @@ export function rubricPanel(rubricKey, annKey) {
   const currentScore = getScore(annKey);
   const currentDimensions = getScore(`${annKey}_dims`) || [];
   const dimId = r.dimensionId || '';
+  const currentDimOpts = (r.dimensions && r.dimensions[currentScore]) || [];
+  const dimLabel = currentScore
+    ? ((r.dimensionLabels && r.dimensionLabels[currentScore]) || (currentScore <= 2 ? 'What went wrong?' : 'Details'))
+    : '';
+  const showDims = currentScore && currentDimOpts.length > 0;
 
   return `
     <div class="rubric-panel ${r.veto ? 'veto' : ''}" data-rubric-id="${rubricKey}">
@@ -72,11 +77,11 @@ export function rubricPanel(rubricKey, annKey) {
       <div class="rubric-main">
         <div class="rubric-left">
            ${scoreStars(annKey, rubricKey)}
-           
-           <div class="dimensions-container" style="display: ${currentScore ? 'block' : 'none'}">
-             <div class="dims-title">${currentScore <= 2 ? 'What went wrong?' : 'Details'} <span class="muted" style="font-size:0.65rem; font-weight:normal; text-transform:none; margin-left:4px;">(Select all that apply)</span></div>
+
+           <div class="dimensions-container" style="display: ${showDims ? 'block' : 'none'}">
+             <div class="dims-title">${esc(dimLabel)} <span class="muted" style="font-size:0.65rem; font-weight:normal; text-transform:none; margin-left:4px;">(Select all that apply)</span></div>
              <div class="dims-list">
-               ${((r.dimensions && r.dimensions[currentScore]) || []).map(opt => `
+               ${currentDimOpts.map(opt => `
                  <label class="dim-checkbox">
                    <input type="checkbox" data-ann-key="${annKey}_dims" value="${esc(opt)}" ${currentDimensions.includes(opt) ? 'checked' : ''}>
                    <span>${esc(opt)}</span>
@@ -123,5 +128,17 @@ export function renderTabHeader(label, icon, tabId) {
     <div class="tab-header-label">
       <span class="icon">${icon}</span>
       ${label}
+    </div>`;
+}
+
+export function feedbackBox(annKey) {
+  const current = getScore(annKey) || '';
+  return `
+    <div class="feedback-box">
+      <div class="feedback-header">
+        <div class="feedback-tag">FEEDBACK</div>
+        <div class="feedback-question">Anything our AI missed or should also capture?</div>
+      </div>
+      <textarea class="feedback-textarea" data-ann-key="${annKey}" rows="3" placeholder="Share any gaps, missing details, or suggestions…">${esc(current)}</textarea>
     </div>`;
 }

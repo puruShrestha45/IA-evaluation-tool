@@ -775,6 +775,54 @@ details summary::-webkit-details-marker { display: none; }
 
 .dim-panel.hidden { display: none; }
 
+/* ── Feedback box ─────────────────────────────────────────────────────────── */
+.feedback-box {
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.tab-side-scores + .feedback-box { margin-top: 0.75rem; margin-bottom: 0; }
+.dim-tabs-container .dim-panels-body { padding-bottom: 0; }
+.dim-tabs-container .feedback-box { margin: 0 1rem 1rem; }
+
+.feedback-header {
+  padding: 1.25rem;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+}
+.feedback-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 0.35rem;
+}
+.feedback-question {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.45;
+}
+.feedback-textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg);
+  border: none;
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  padding: 0.85rem 1.25rem;
+  resize: vertical;
+  min-height: 90px;
+}
+.feedback-textarea:focus { outline: none; background: var(--surface-solid); }
+.feedback-textarea::placeholder { color: var(--text-muted); }
+
 /* ── Question card progress state (border) ───────────────────────────────── */
 .thread-card[data-progress="partial"]  { border-left: 3px solid var(--s2); }
 .thread-card[data-progress="complete"] { border-left: 3px solid var(--s4); }
@@ -1735,6 +1783,12 @@ details.ai-reasoning p { padding: .4rem .7rem .5rem; color: var(--text-muted); f
 .resume-exp-tech {
   padding: .5rem .85rem .65rem;
   border-top: 1px solid var(--border);
+}
+
+.resume-section-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1rem 0;
 }
 
 .resume-cert-list { display: flex; flex-direction: column; gap: .65rem; }
