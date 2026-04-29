@@ -301,12 +301,13 @@ function setupEvents() {
       const dimsEl = panel ? panel.querySelector('.dimensions-container') : null;
       if (dimsEl && r) {
         const opts = (r.dimensions && r.dimensions[value]) || [];
-        dimsEl.style.display = opts.length ? 'block' : 'none';
+        dimsEl.style.display = 'block';
+        const titleEl = dimsEl.querySelector('.dims-title');
+        if (titleEl) titleEl.innerHTML = value === 5
+          ? 'All correct, no issues'
+          : `What went wrong? <span class="muted" style="font-size:0.65rem; font-weight:normal; text-transform:none; margin-left:4px;">(Select all that apply)</span>`;
+        const dimsList = dimsEl.querySelector('.dims-list');
         if (opts.length) {
-          const dimLabel = (r.dimensionLabels && r.dimensionLabels[value]) || (value <= 2 ? 'What went wrong?' : 'Details');
-          const titleEl = dimsEl.querySelector('.dims-title');
-          if (titleEl) titleEl.innerHTML = `${esc(dimLabel)} <span class="muted" style="font-size:0.65rem; font-weight:normal; text-transform:none; margin-left:4px;">(Select all that apply)</span>`;
-          const dimsList = dimsEl.querySelector('.dims-list');
           const currentDims = getScore(`${annKey}_dims`) || [];
           dimsList.innerHTML = opts.map(opt => `
             <label class="dim-checkbox">
@@ -314,6 +315,8 @@ function setupEvents() {
               <span>${esc(opt)}</span>
             </label>
           `).join('');
+        } else {
+          dimsList.innerHTML = '';
         }
       }
 

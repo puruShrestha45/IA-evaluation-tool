@@ -61,10 +61,10 @@ export function rubricPanel(rubricKey, annKey) {
   const currentDimensions = getScore(`${annKey}_dims`) || [];
   const dimId = r.dimensionId || '';
   const currentDimOpts = (r.dimensions && r.dimensions[currentScore]) || [];
-  const dimLabel = currentScore
-    ? ((r.dimensionLabels && r.dimensionLabels[currentScore]) || (currentScore <= 2 ? 'What went wrong?' : 'Details'))
-    : '';
-  const showDims = currentScore && currentDimOpts.length > 0;
+  const showDims = !!currentScore;
+  const dimsTitle = currentScore === 5
+    ? 'All correct, no issues'
+    : `What went wrong? <span class="muted" style="font-size:0.65rem; font-weight:normal; text-transform:none; margin-left:4px;">(Select all that apply)</span>`;
 
   return `
     <div class="rubric-panel ${r.veto ? 'veto' : ''}" data-rubric-id="${rubricKey}">
@@ -79,7 +79,7 @@ export function rubricPanel(rubricKey, annKey) {
            ${scoreStars(annKey, rubricKey)}
 
            <div class="dimensions-container" style="display: ${showDims ? 'block' : 'none'}">
-             <div class="dims-title">${esc(dimLabel)} <span class="muted" style="font-size:0.65rem; font-weight:normal; text-transform:none; margin-left:4px;">(Select all that apply)</span></div>
+             <div class="dims-title">${dimsTitle}</div>
              <div class="dims-list">
                ${currentDimOpts.map(opt => `
                  <label class="dim-checkbox">
