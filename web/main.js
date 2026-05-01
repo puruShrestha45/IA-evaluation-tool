@@ -9,7 +9,7 @@ import { toggleGuide }              from './guide.js';
 import { renderJDTab }              from './tab-jd.js';
 import { renderResumeTab }          from './tab-resume.js';
 import { renderQuestionsTab }       from './tab-questions.js';
-import { renderDuringInterviewTab, buildDisplayOrder } from './tab-during.js';
+import { renderDuringInterviewTab } from './tab-during.js';
 import { renderAnalysisTab }                          from './tab-analysis.js';
 import { renderTimekeeperTab, renderAnswerRelevancyTab, renderAskIATab } from './tab-placeholders.js';
 import { RUBRICS }                  from './rubrics.js';
@@ -248,29 +248,6 @@ function setupEvents() {
     // Guide toggle buttons
     const guideBtn = e.target.closest('.guide-toggle-btn');
     if (guideBtn) { toggleGuide(guideBtn.dataset.guideToggle); return; }
-
-    // Bulk "Mark remaining as Correct" after confirmed Interview End
-    const markRemainingBtn = e.target.closest('.mark-remaining-btn');
-    if (markRemainingBtn) {
-      const startCi = parseInt(markRemainingBtn.dataset.startCi);
-      const pit = state.data.processed_interview_transcript;
-      const ordered = buildDisplayOrder(pit);
-      let ci = 0;
-      for (const entry of ordered) {
-        if (entry.role === 'system' && entry.task === 'classification') {
-          if (ci >= startCi) {
-            const ab6    = `flow_classification.c${ci}`;
-            const classif = (entry.output && entry.output.classification) || '';
-            setScore(`${ab6}.classification`, 'CORRECT');
-            setScore(`${ab6}.ground_truth`, classif);
-          }
-          ci++;
-        }
-      }
-      scheduleSave();
-      renderContent();
-      return;
-    }
 
     // Star rating click
     const star = e.target.closest('.star');

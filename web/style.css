@@ -1192,6 +1192,12 @@ details.ai-reasoning p { padding: .4rem .7rem .5rem; color: var(--text-muted); f
 .bc-oop  { background: #b45309; }
 .bc-newq { background: var(--primary); }
 
+.di-classif-inline-ann {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+}
+
 .inline-btn {
   padding: .2rem .55rem;
   font-size: .75rem;
@@ -1530,6 +1536,18 @@ details.ai-reasoning p { padding: .4rem .7rem .5rem; color: var(--text-muted); f
 }
 
 /* Shared annotation helpers */
+.veto-badge {
+  display: inline-block;
+  padding: .15rem .45rem;
+  border-radius: 4px;
+  font-size: .7rem;
+  font-weight: 700;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
 .di-annotate-label { font-size: .8rem; color: var(--text-mid); }
 .di-select {
   padding: .35rem .6rem; border: 1px solid var(--border); border-radius: var(--radius-sm);
