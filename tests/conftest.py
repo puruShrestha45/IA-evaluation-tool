@@ -8,7 +8,7 @@ os.environ["DATABASE_URL"] = "postgresql://admin:password123@localhost:5432/eval
 
 from fastapi.testclient import TestClient  # noqa: E402
 import api.main as main_module             # noqa: E402
-from api.main import app, engine           # noqa: E402
+from api.main import app, engine, _DDL     # noqa: E402
 
 SAMPLE_DATA = [
     {
@@ -41,20 +41,10 @@ SAMPLE_DATA = [
     },
 ]
 
-_CREATE_TABLE = text("""
-    CREATE TABLE IF NOT EXISTS evaluation_annotations (
-        email       VARCHAR(255) NOT NULL,
-        dataset_idx INTEGER      NOT NULL,
-        data        TEXT         NOT NULL,
-        updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (email, dataset_idx)
-    )
-""")
-
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
-    """Create evaluation_test_db and the annotations table once for the test session."""
+    """Create evaluation_test_db and all star-schema tables once per session."""
     base = "postgresql://admin:password123@localhost:5432"
     admin_engine = create_engine(f"{base}/postgres", isolation_level="AUTOCOMMIT")
     with admin_engine.connect() as conn:
@@ -66,15 +56,19 @@ def setup_test_database():
     admin_engine.dispose()
 
     with engine.begin() as conn:
-        conn.execute(_CREATE_TABLE)
+        for stmt in _DDL:
+            conn.execute(stmt)
 
 
 @pytest.fixture(autouse=True)
-def clean_annotations():
-    """Truncate the annotations table after every test to keep tests isolated."""
+def clean_tables():
+    """Truncate all tables after every test to keep tests isolated."""
     yield
     with engine.begin() as conn:
-        conn.execute(text("DELETE FROM evaluation_annotations"))
+        conn.execute(text("DELETE FROM feedback"))
+        conn.execute(text("DELETE FROM scores"))
+        conn.execute(text("DELETE FROM evaluations"))
+        conn.execute(text("DELETE FROM candidates"))
 
 
 @pytest.fixture
